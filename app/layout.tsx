@@ -6,6 +6,16 @@ import './globals.css';
 export const metadata: Metadata = {
 	title: 'Chess Arena',
 	description: 'Play chess online with friends or against the computer.',
+	manifest: '/manifest.webmanifest',
+	appleWebApp: {
+		capable: true,
+		title: 'Chess Arena',
+		statusBarStyle: 'black-translucent',
+	},
+};
+
+export const viewport = {
+	themeColor: '#211f1a',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -16,6 +26,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 					<div className="site-nav">
 						<Link href="/" className="site-logo">
 							♞ Chess Arena
+						</Link>
+						<Link href="/puzzles" className="nav-link">
+							Puzzle
 						</Link>
 						<Link href="/games" className="nav-link">
 							My games

@@ -20,6 +20,11 @@ export default function Home() {
 					<span className="mode-name">Online</span>
 					<span className="mode-desc">Invite a friend with a link — play live</span>
 				</Link>
+				<Link href="/puzzles" className="mode-card">
+					<span className="mode-icon">🧩</span>
+					<span className="mode-name">Daily Puzzle</span>
+					<span className="mode-desc">One tactic a day, from Lichess</span>
+				</Link>
 			</div>
 		</div>
 	);

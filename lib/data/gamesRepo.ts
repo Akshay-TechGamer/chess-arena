@@ -7,11 +7,23 @@ export type GameRow = Database['public']['Tables']['chess_games']['Row'];
 export type MoveRow = Database['public']['Tables']['chess_moves']['Row'];
 export type GameResult = Database['public']['Enums']['chess_game_result'];
 
-export async function createOnlineGame(userID: string, inviteCode: string): Promise<GameRow> {
+export async function createOnlineGame(
+	userID: string,
+	inviteCode: string,
+	timeControlSecs: number,
+	incrementSecs: number,
+): Promise<GameRow> {
 	const supabase = getSupabase();
 	const { data, error } = await supabase
 		.from('chess_games')
-		.insert({ mode: 'online', status: 'waiting', white_id: userID, invite_code: inviteCode })
+		.insert({
+			mode: 'online',
+			status: 'waiting',
+			white_id: userID,
+			invite_code: inviteCode,
+			time_control_secs: timeControlSecs,
+			increment_secs: incrementSecs,
+		})
 		.select()
 		.single();
 	if (error || !data) {
@@ -82,6 +94,9 @@ export interface RecordMoveInput {
 	san: string;
 	fenAfter: string;
 	pgn: string;
+	/** Remaining clocks AFTER this move; 0/0 for unlimited games. */
+	whiteMsLeft: number;
+	blackMsLeft: number;
 }
 
 /** Inserts the move and syncs the game's current position. */
@@ -92,9 +107,8 @@ export async function recordMove(input: RecordMoveInput): Promise<void> {
 		ply: input.ply,
 		san: input.san,
 		fen_after: input.fenAfter,
-		// clocks are not implemented yet (casual games); columns are NOT NULL
-		white_ms_left: 0,
-		black_ms_left: 0,
+		white_ms_left: Math.round(input.whiteMsLeft),
+		black_ms_left: Math.round(input.blackMsLeft),
 	});
 	if (moveError) {
 		throw new Error(`Could not record move: ${moveError.message}`);

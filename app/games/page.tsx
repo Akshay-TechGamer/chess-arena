@@ -66,6 +66,7 @@ export default function MyGamesPage() {
 							<th>Result</th>
 							<th>Status</th>
 							<th>Date</th>
+							<th></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -82,6 +83,11 @@ export default function MyGamesPage() {
 									<td>{RESULT_BADGE[row.result ?? ''] ?? '—'}</td>
 									<td>{row.status}</td>
 									<td>{new Date(row.created_at).toLocaleDateString()}</td>
+									<td>
+										{row.status === 'finished' && (
+											<Link href={`/analyze/${row.id}`}>🔍 Analyze</Link>
+										)}
+									</td>
 								</tr>
 							);
 						})}

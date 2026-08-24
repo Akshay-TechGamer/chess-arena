@@ -1,0 +1,23 @@
+{
+	"name": "Chess Arena",
+	"short_name": "Chess Arena",
+	"description": "Play chess online with friends or against the computer.",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#161512",
+	"theme_color": "#211f1a",
+	"icons": [
+		{
+			"src": "/icon.svg",
+			"sizes": "any",
+			"type": "image/svg+xml",
+			"purpose": "any"
+		},
+		{
+			"src": "/icon-maskable.svg",
+			"sizes": "any",
+			"type": "image/svg+xml",
+			"purpose": "maskable"
+		}
+	]
+}

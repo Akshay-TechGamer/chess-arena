@@ -7,6 +7,7 @@ import { createOnlineGame, findGameByInviteCode } from '@/lib/data/gamesRepo';
 import { cancelQuickMatch, quickMatch } from '@/lib/data/matchmakingRepo';
 import { subscribeToMyNewGames } from '@/lib/realtime/gameChannel';
 import { generateInviteCode, isValidInviteCode, normalizeInviteCode } from '@/lib/game/invite';
+import { TIME_CONTROLS } from '@/lib/game/clock';
 
 export default function OnlineLobbyPage() {
 	const router = useRouter();
@@ -14,6 +15,7 @@ export default function OnlineLobbyPage() {
 	const [joinCode, setJoinCode] = useState('');
 	const [joining, setJoining] = useState(false);
 	const [searching, setSearching] = useState(false);
+	const [timeControlID, setTimeControlID] = useState('rapid10');
 	const [error, setError] = useState<string | null>(null);
 	const cleanupRef = useRef<(() => void) | null>(null);
 
@@ -78,7 +80,13 @@ export default function OnlineLobbyPage() {
 		try {
 			const user = await ensureSignedIn();
 			await ensureProfile(user);
-			const gameRow = await createOnlineGame(user.id, generateInviteCode());
+			const timeControl = TIME_CONTROLS.find((option) => option.id === timeControlID) ?? TIME_CONTROLS[0];
+			const gameRow = await createOnlineGame(
+				user.id,
+				generateInviteCode(),
+				timeControl.baseSecs,
+				timeControl.incrementSecs,
+			);
 			router.push(`/game/${gameRow.id}`);
 		} catch (createError) {
 			setError(createError instanceof Error ? createError.message : 'Could not create game');
@@ -133,6 +141,18 @@ export default function OnlineLobbyPage() {
 			<p className="game-subtitle">
 				You get a link to send to your friend. Game starts when they open it.
 			</p>
+			<div className="color-row">
+				{TIME_CONTROLS.map((option) => (
+					<button
+						key={option.id}
+						type="button"
+						className={`btn${timeControlID === option.id ? ' btn-active' : ''}`}
+						onClick={() => setTimeControlID(option.id)}
+					>
+						{option.label}
+					</button>
+				))}
+			</div>
 			<button
 				type="button"
 				className="btn btn-primary btn-start"

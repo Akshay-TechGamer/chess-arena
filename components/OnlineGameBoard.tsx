@@ -27,8 +27,20 @@ import {
 	type RematchSignal,
 } from '@/lib/realtime/gameChannel';
 import { getGameStatus, type PlayerColor } from '@/lib/game/status';
+import {
+	UNLIMITED_TIME,
+	formatClock,
+	liveClocks,
+	msAfterMove,
+	type ClockSnapshot,
+} from '@/lib/game/clock';
 import { MoveList } from '@/components/MoveList';
 import { PromotionDialog } from '@/components/PromotionDialog';
+
+interface StoredClocks extends ClockSnapshot {
+	/** Wall-clock ms when this snapshot was taken (last move / activation). */
+	at: number;
+}
 
 type Phase = 'loading' | 'error' | 'ready';
 
@@ -74,6 +86,12 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 	const gameRowRef = useRef<GameRow | null>(null);
 	gameRowRef.current = gameRow;
 	const channelRef = useRef<GameChannelHandle | null>(null);
+	const clocksRef = useRef<StoredClocks | null>(null);
+	const timeoutClaimedRef = useRef(false);
+	const [, setClockTick] = useState(0);
+
+	const timed = (gameRow?.time_control_secs ?? UNLIMITED_TIME) !== UNLIMITED_TIME;
+	const incrementMs = (gameRow?.increment_secs ?? 0) * 1000;
 
 	const myColor: PlayerColor | null =
 		myID && gameRow
@@ -123,6 +141,18 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 				for (const move of moves) {
 					game.move(move.san);
 				}
+				const lastStored = moves[moves.length - 1];
+				clocksRef.current = lastStored
+					? {
+							whiteMs: lastStored.white_ms_left,
+							blackMs: lastStored.black_ms_left,
+							at: Date.parse(lastStored.created_at),
+						}
+					: {
+							whiteMs: row.time_control_secs * 1000,
+							blackMs: row.time_control_secs * 1000,
+							at: Date.parse(row.updated_at),
+						};
 				setFen(game.fen());
 				setGameRow(row);
 				setMyID(user.id);
@@ -163,9 +193,25 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 				} else if (move.ply > played + 1) {
 					void resyncMoves();
 				}
-				// move.ply <= played: our own move echoing back — ignore
+				// move.ply <= played: our own move echoing back — clocks still
+				// benefit from the server timestamp below
+				if (move.ply === game.history().length) {
+					clocksRef.current = {
+						whiteMs: move.white_ms_left,
+						blackMs: move.black_ms_left,
+						at: Date.parse(move.created_at),
+					};
+				}
 			},
 			onGameUpdate: (row: GameRow) => {
+				// Game just went active with no moves: start both clocks now.
+				if (row.status === 'active' && game.history().length === 0) {
+					clocksRef.current = {
+						whiteMs: row.time_control_secs * 1000,
+						blackMs: row.time_control_secs * 1000,
+						at: Date.parse(row.updated_at),
+					};
+				}
 				setGameRow(row);
 				if (row.black_id && !names[row.black_id]) {
 					getUsernames([row.black_id]).then((fetched) =>
@@ -217,6 +263,22 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 			} catch {
 				return false;
 			}
+			// Burn my clock for the time I spent thinking, add my increment.
+			let nextClocks: ClockSnapshot = { whiteMs: 0, blackMs: 0 };
+			if (timed && clocksRef.current) {
+				const nowMs = Date.now();
+				const elapsed = nowMs - clocksRef.current.at;
+				const moverIsWhite = game.turn() === 'b'; // turn already flipped
+				nextClocks = {
+					whiteMs: moverIsWhite
+						? msAfterMove(clocksRef.current.whiteMs, elapsed, incrementMs)
+						: clocksRef.current.whiteMs,
+					blackMs: moverIsWhite
+						? clocksRef.current.blackMs
+						: msAfterMove(clocksRef.current.blackMs, elapsed, incrementMs),
+				};
+				clocksRef.current = { ...nextClocks, at: nowMs };
+			}
 			setFen(game.fen());
 			setSelected(null);
 			setBusy(true);
@@ -229,6 +291,8 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 						san: game.history().slice(-1)[0],
 						fenAfter: game.fen(),
 						pgn: game.pgn(),
+						whiteMsLeft: nextClocks.whiteMs,
+						blackMsLeft: nextClocks.blackMs,
 					});
 					const after = getGameStatus(game);
 					if (after.isOver && after.winner) {
@@ -244,8 +308,33 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 			})();
 			return true;
 		},
-		[game, gameID, isMyTurn],
+		[game, gameID, isMyTurn, timed, incrementMs],
 	);
+
+	// Clock tick + flag-fall claim (either player may claim the timeout).
+	useEffect(() => {
+		if (!timed || gameRow?.status !== 'active') {
+			return;
+		}
+		const interval = setInterval(() => {
+			setClockTick((tick) => tick + 1);
+			const row = gameRowRef.current;
+			const stored = clocksRef.current;
+			if (!row || row.status !== 'active' || !stored || timeoutClaimedRef.current || !myColor) {
+				return;
+			}
+			const live = liveClocks(stored, game.turn(), stored.at, Date.now());
+			const flagged = game.turn() === 'w' ? live.whiteMs <= 0 : live.blackMs <= 0;
+			if (flagged) {
+				timeoutClaimedRef.current = true;
+				const winner: PlayerColor = game.turn() === 'w' ? 'black' : 'white';
+				finishGame(gameID, statusToResult(winner), 'timeout').catch(() => {
+					timeoutClaimedRef.current = false;
+				});
+			}
+		}, 300);
+		return () => clearInterval(interval);
+	}, [timed, gameRow?.status, game, gameID, myColor]);
 
 	const isPromotionMove = useCallback(
 		(from: Square, to: Square): boolean => {
@@ -338,6 +427,12 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 			<div className="invite-panel">
 				<h1 className="setup-title">Waiting for opponent…</h1>
 				<p className="game-subtitle">Share this link — the game starts as soon as they open it.</p>
+				<p className="game-subtitle">
+					Time control:{' '}
+					{gameRow.time_control_secs === UNLIMITED_TIME
+						? 'no clock'
+						: `${Math.round(gameRow.time_control_secs / 60)} min`}
+				</p>
 				<div className="invite-code">{gameRow.invite_code}</div>
 				<button type="button" className="btn btn-primary" onClick={copyInviteLink}>
 					{copied ? '✓ Copied!' : 'Copy invite link'}
@@ -407,9 +502,36 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 		},
 	};
 
+	const displayClocks =
+		timed && clocksRef.current
+			? gameRow.status === 'active'
+				? liveClocks(clocksRef.current, game.turn(), clocksRef.current.at, Date.now())
+				: { whiteMs: clocksRef.current.whiteMs, blackMs: clocksRef.current.blackMs }
+			: null;
+	const bottomColor: PlayerColor = myColor ?? 'white';
+	const topColor: PlayerColor = bottomColor === 'white' ? 'black' : 'white';
+	const clockFor = (color: PlayerColor) =>
+		displayClocks === null ? null : color === 'white' ? displayClocks.whiteMs : displayClocks.blackMs;
+	const nameFor = (color: PlayerColor) => (color === 'white' ? whiteName : blackName);
+	const clockChip = (color: PlayerColor) => {
+		const ms = clockFor(color);
+		if (ms === null) {
+			return null;
+		}
+		const ticking =
+			gameRow.status === 'active' && game.turn() === (color === 'white' ? 'w' : 'b');
+		return (
+			<div className={`clock-chip${ticking ? ' clock-ticking' : ''}${ms < 30_000 ? ' clock-low' : ''}`}>
+				<span className="clock-name">{nameFor(color)}</span>
+				<span className="clock-time">{formatClock(ms)}</span>
+			</div>
+		);
+	};
+
 	return (
 		<div className="game-layout">
 			<div className="board-column">
+				{clockChip(topColor)}
 				<div className="board-wrap">
 					<Chessboard options={boardOptions} />
 					{pendingPromotion && (
@@ -421,6 +543,7 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 						/>
 					)}
 				</div>
+				{clockChip(bottomColor)}
 			</div>
 			<aside className="sidebar">
 				<p className="game-subtitle">
@@ -435,17 +558,25 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 				<div className={`status-banner${finished ? ' status-over' : ''}`}>
 					{banner ?? statusText}
 				</div>
-				{finished && myColor !== null && (
+				{finished && (
 					<div className="button-row">
-						{incomingRematch ? (
-							<button type="button" className="btn btn-primary" onClick={acceptRematch}>
-								✓ Accept rematch
-							</button>
-						) : (
-							<button type="button" className="btn" onClick={offerRematch} disabled={rematchSent}>
-								{rematchSent ? 'Rematch offered…' : 'Offer rematch'}
-							</button>
-						)}
+						{myColor !== null &&
+							(incomingRematch ? (
+								<button type="button" className="btn btn-primary" onClick={acceptRematch}>
+									✓ Accept rematch
+								</button>
+							) : (
+								<button type="button" className="btn" onClick={offerRematch} disabled={rematchSent}>
+									{rematchSent ? 'Rematch offered…' : 'Offer rematch'}
+								</button>
+							))}
+						<button
+							type="button"
+							className="btn"
+							onClick={() => router.push(`/analyze/${gameID}`)}
+						>
+							🔍 Analyze
+						</button>
 					</div>
 				)}
 				<MoveList moves={game.history()} />

@@ -2,16 +2,24 @@
 
 import { useEffect, useRef } from 'react';
 
-export function MoveList({ moves }: { moves: readonly string[] }) {
+interface MoveListProps {
+	moves: readonly string[];
+	/** 1-based ply currently shown (analysis mode). Highlights that move. */
+	activePly?: number;
+	/** When set, moves become clickable and report their 1-based ply. */
+	onSelectPly?: (ply: number) => void;
+}
+
+export function MoveList({ moves, activePly, onSelectPly }: MoveListProps) {
 	const listRef = useRef<HTMLOListElement>(null);
 
-	// Keep the newest move visible
+	// Keep the newest move visible (only when not navigating history)
 	useEffect(() => {
 		const list = listRef.current;
-		if (list) {
+		if (list && activePly === undefined) {
 			list.scrollTop = list.scrollHeight;
 		}
-	}, [moves.length]);
+	}, [moves.length, activePly]);
 
 	const pairs: Array<{ moveNumber: number; white: string; black?: string }> = [];
 	for (let i = 0; i < moves.length; i += 2) {
@@ -22,13 +30,31 @@ export function MoveList({ moves }: { moves: readonly string[] }) {
 		return <p className="move-list-empty">No moves yet</p>;
 	}
 
+	const renderSan = (san: string | undefined, ply: number) => {
+		if (!san) {
+			return <span className="move-san" />;
+		}
+		if (!onSelectPly) {
+			return <span className="move-san">{san}</span>;
+		}
+		return (
+			<button
+				type="button"
+				className={`move-san move-san-btn${activePly === ply ? ' move-san-active' : ''}`}
+				onClick={() => onSelectPly(ply)}
+			>
+				{san}
+			</button>
+		);
+	};
+
 	return (
 		<ol ref={listRef} className="move-list">
 			{pairs.map((pair) => (
 				<li key={pair.moveNumber}>
 					<span className="move-number">{pair.moveNumber}.</span>
-					<span className="move-san">{pair.white}</span>
-					<span className="move-san">{pair.black ?? ''}</span>
+					{renderSan(pair.white, pair.moveNumber * 2 - 1)}
+					{renderSan(pair.black, pair.moveNumber * 2)}
 				</li>
 			))}
 		</ol>
