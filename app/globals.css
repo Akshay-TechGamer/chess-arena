@@ -52,6 +52,12 @@ button {
 	min-width: 0;
 }
 
+.nav-inline {
+	display: flex;
+	align-items: center;
+	gap: 18px;
+}
+
 .nav-link {
 	color: var(--muted);
 	font-size: 0.92rem;
@@ -60,6 +66,82 @@ button {
 
 .nav-link:hover {
 	color: var(--text);
+}
+
+/* Hamburger — hidden on desktop, shown on mobile */
+.nav-toggle {
+	display: none;
+	background: none;
+	border: none;
+	color: var(--text);
+	font-size: 1.4rem;
+	line-height: 1;
+	padding: 4px 8px;
+}
+
+/* Drawer */
+.drawer-backdrop {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.55);
+	z-index: 40;
+}
+
+.drawer {
+	position: fixed;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	width: 78%;
+	max-width: 300px;
+	background: var(--bg-raised);
+	border-right: 1px solid var(--border);
+	z-index: 50;
+	display: flex;
+	flex-direction: column;
+	padding: 16px;
+	animation: drawer-in 0.2s ease;
+}
+
+@keyframes drawer-in {
+	from {
+		transform: translateX(-100%);
+	}
+	to {
+		transform: translateX(0);
+	}
+}
+
+.drawer-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding-bottom: 14px;
+	border-bottom: 1px solid var(--border);
+}
+
+.drawer-nav {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 12px 0;
+	flex: 1;
+}
+
+.drawer-link {
+	padding: 12px 10px;
+	border-radius: 8px;
+	color: var(--text);
+	font-size: 1.05rem;
+}
+
+.drawer-link:hover {
+	background: var(--card);
+}
+
+.drawer-auth {
+	border-top: 1px solid var(--border);
+	padding-top: 14px;
 }
 
 .board-table {
@@ -644,12 +726,78 @@ button {
 	background: var(--card-hover);
 }
 
+/* ---------- Mobile ---------- */
+
+@media (max-width: 760px) {
+	/* Drawer nav replaces the inline links */
+	.nav-inline,
+	.auth-desktop {
+		display: none;
+	}
+
+	.nav-toggle {
+		display: inline-block;
+	}
+
+	.site-nav {
+		gap: 10px;
+	}
+
+	.site-logo {
+		font-size: 1.1rem;
+	}
+}
+
 @media (max-width: 640px) {
 	.container {
 		padding: 16px 8px 40px;
 	}
 
+	/* Board and sidebar stack vertically, each full width */
 	.game-layout {
 		gap: 14px;
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.board-column {
+		max-width: 100%;
+		flex-basis: auto;
+	}
+
+	.sidebar {
+		flex-basis: auto;
+		min-width: 0;
+	}
+
+	/* The analysis eval bar goes horizontal above the board */
+	.eval-bar {
+		width: 100%;
+		min-height: 0;
+		height: 14px;
+		flex-direction: row;
+		align-items: stretch;
+		order: -1;
+	}
+
+	.eval-bar-white {
+		height: 100% !important;
+		width: var(--eval-fill, 50%);
+		transition: width 0.4s ease;
+	}
+
+	.move-list {
+		max-height: 160px;
+	}
+
+	.setup-title {
+		font-size: 1.5rem;
+	}
+
+	/* Tables scroll horizontally instead of overflowing the page */
+	.board-table {
+		display: block;
+		overflow-x: auto;
+		white-space: nowrap;
 	}
 }

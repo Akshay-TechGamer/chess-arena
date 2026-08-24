@@ -161,7 +161,10 @@ export function AnalysisBoard({ gameID }: { gameID: string }) {
 	return (
 		<div className="game-layout">
 			<div className="eval-bar" title="White's winning chances">
-				<div className="eval-bar-white" style={{ height: `${barPercent}%` }} />
+				<div
+					className="eval-bar-white"
+					style={{ height: `${barPercent}%`, ['--eval-fill' as string]: `${barPercent}%` }}
+				/>
 			</div>
 			<div className="board-column">
 				<div className="board-wrap">
