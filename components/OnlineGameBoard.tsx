@@ -10,13 +10,13 @@ import { Chess, type Square } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
 import { ensureProfile, ensureSignedIn, getUsernames } from '@/lib/data/authRepo';
 import {
+	claimTimeout,
 	createRematchGame,
-	finishGame,
 	getGame,
 	joinGame,
 	listMoves,
-	recordMove,
-	type GameResult,
+	playMove,
+	resignGame,
 	type GameRow,
 	type MoveRow,
 } from '@/lib/data/gamesRepo';
@@ -27,13 +27,7 @@ import {
 	type RematchSignal,
 } from '@/lib/realtime/gameChannel';
 import { getGameStatus, type PlayerColor } from '@/lib/game/status';
-import {
-	UNLIMITED_TIME,
-	formatClock,
-	liveClocks,
-	msAfterMove,
-	type ClockSnapshot,
-} from '@/lib/game/clock';
+import { UNLIMITED_TIME, formatClock, liveClocks, type ClockSnapshot } from '@/lib/game/clock';
 import { MoveList } from '@/components/MoveList';
 import { PromotionDialog } from '@/components/PromotionDialog';
 
@@ -54,13 +48,6 @@ const RESULT_TEXT: Record<string, string> = {
 	black_win: 'Black wins',
 	draw: 'Draw',
 };
-
-function statusToResult(winner: PlayerColor | 'draw'): GameResult {
-	if (winner === 'draw') {
-		return 'draw';
-	}
-	return winner === 'white' ? 'white_win' : 'black_win';
-}
 
 export function OnlineGameBoard({ gameID }: { gameID: string }) {
 	const router = useRouter();
@@ -91,7 +78,6 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 	const [, setClockTick] = useState(0);
 
 	const timed = (gameRow?.time_control_secs ?? UNLIMITED_TIME) !== UNLIMITED_TIME;
-	const incrementMs = (gameRow?.increment_secs ?? 0) * 1000;
 
 	const myColor: PlayerColor | null =
 		myID && gameRow
@@ -258,26 +244,13 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 			if (!isMyTurn) {
 				return false;
 			}
+			// Optimistic local apply; the server (play-move function) is the
+			// authority — it validates legality, computes clocks server-side,
+			// and finishes the game. Its move INSERT echoes back over realtime.
 			try {
 				game.move({ from, to, promotion });
 			} catch {
 				return false;
-			}
-			// Burn my clock for the time I spent thinking, add my increment.
-			let nextClocks: ClockSnapshot = { whiteMs: 0, blackMs: 0 };
-			if (timed && clocksRef.current) {
-				const nowMs = Date.now();
-				const elapsed = nowMs - clocksRef.current.at;
-				const moverIsWhite = game.turn() === 'b'; // turn already flipped
-				nextClocks = {
-					whiteMs: moverIsWhite
-						? msAfterMove(clocksRef.current.whiteMs, elapsed, incrementMs)
-						: clocksRef.current.whiteMs,
-					blackMs: moverIsWhite
-						? clocksRef.current.blackMs
-						: msAfterMove(clocksRef.current.blackMs, elapsed, incrementMs),
-				};
-				clocksRef.current = { ...nextClocks, at: nowMs };
 			}
 			setFen(game.fen());
 			setSelected(null);
@@ -285,30 +258,20 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 			setBanner(null);
 			(async () => {
 				try {
-					await recordMove({
-						gameID,
-						ply: game.history().length,
-						san: game.history().slice(-1)[0],
-						fenAfter: game.fen(),
-						pgn: game.pgn(),
-						whiteMsLeft: nextClocks.whiteMs,
-						blackMsLeft: nextClocks.blackMs,
-					});
-					const after = getGameStatus(game);
-					if (after.isOver && after.winner) {
-						await finishGame(gameID, statusToResult(after.winner), after.reason ?? 'game_over');
-					}
-				} catch {
+					await playMove(gameID, from, to, promotion);
+				} catch (moveError) {
 					game.undo();
 					setFen(game.fen());
-					setBanner('Move did not reach the server — try again.');
+					setBanner(
+						moveError instanceof Error ? moveError.message : 'Move did not reach the server.',
+					);
 				} finally {
 					setBusy(false);
 				}
 			})();
 			return true;
 		},
-		[game, gameID, isMyTurn, timed, incrementMs],
+		[game, gameID, isMyTurn],
 	);
 
 	// Clock tick + flag-fall claim (either player may claim the timeout).
@@ -327,8 +290,8 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 			const flagged = game.turn() === 'w' ? live.whiteMs <= 0 : live.blackMs <= 0;
 			if (flagged) {
 				timeoutClaimedRef.current = true;
-				const winner: PlayerColor = game.turn() === 'w' ? 'black' : 'white';
-				finishGame(gameID, statusToResult(winner), 'timeout').catch(() => {
+				// server re-verifies from stored clocks; no-op if time remains
+				claimTimeout(gameID).catch(() => {
 					timeoutClaimedRef.current = false;
 				});
 			}
@@ -367,10 +330,7 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 		if (!window.confirm('Resign this game?')) {
 			return;
 		}
-		const winner: PlayerColor = myColor === 'white' ? 'black' : 'white';
-		finishGame(gameID, statusToResult(winner), 'resignation').catch(() =>
-			setBanner('Could not resign — try again.'),
-		);
+		resignGame(gameID).catch(() => setBanner('Could not resign — try again.'));
 	}, [myColor, gameRow, gameID]);
 
 	const copyInviteLink = useCallback(() => {

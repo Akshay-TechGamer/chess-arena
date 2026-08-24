@@ -487,8 +487,11 @@ export type Database = {
         Returns: string
       }
       admin_list: { Args: { p_key: string }; Returns: Json }
+      chess_claim_timeout: { Args: { p_game_id: string }; Returns: undefined }
+      chess_cleanup_stale_games: { Args: never; Returns: undefined }
       chess_quick_match: { Args: never; Returns: string }
       chess_quick_match_cancel: { Args: never; Returns: undefined }
+      chess_resign: { Args: { p_game_id: string }; Returns: undefined }
       claim_status: { Args: { claim_id: string }; Returns: string }
       create_claim: { Args: { p_name: string; p_ref: string }; Returns: string }
       create_wish: {

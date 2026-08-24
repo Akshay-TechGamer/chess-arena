@@ -88,37 +88,56 @@ export async function listMoves(gameID: string): Promise<MoveRow[]> {
 	return data ?? [];
 }
 
-export interface RecordMoveInput {
-	gameID: string;
-	ply: number;
-	san: string;
-	fenAfter: string;
-	pgn: string;
-	/** Remaining clocks AFTER this move; 0/0 for unlimited games. */
-	whiteMsLeft: number;
-	blackMsLeft: number;
+/**
+ * Plays a move via the server-side play-move edge function, which validates
+ * legality, computes clocks, and finishes the game when it ends (anti-cheat:
+ * clients have no direct write access to moves).
+ */
+export async function playMove(
+	gameID: string,
+	from: string,
+	to: string,
+	promotion?: 'q' | 'r' | 'b' | 'n',
+): Promise<void> {
+	const supabase = getSupabase();
+	const { data, error } = await supabase.functions.invoke('play-move', {
+		body: { gameID, from, to, promotion },
+	});
+	if (error) {
+		let message = 'Move rejected by server';
+		const context = (error as { context?: Response }).context;
+		if (context && typeof context.json === 'function') {
+			try {
+				const body = (await context.json()) as { error?: string };
+				if (body.error) {
+					message = body.error;
+				}
+			} catch {
+				// keep the generic message
+			}
+		}
+		throw new Error(message);
+	}
+	if (data && typeof data === 'object' && 'error' in data && data.error) {
+		throw new Error(String(data.error));
+	}
 }
 
-/** Inserts the move and syncs the game's current position. */
-export async function recordMove(input: RecordMoveInput): Promise<void> {
+/** Resigns via a server-verified RPC — only a player can resign themselves. */
+export async function resignGame(gameID: string): Promise<void> {
 	const supabase = getSupabase();
-	const { error: moveError } = await supabase.from('chess_moves').insert({
-		game_id: input.gameID,
-		ply: input.ply,
-		san: input.san,
-		fen_after: input.fenAfter,
-		white_ms_left: Math.round(input.whiteMsLeft),
-		black_ms_left: Math.round(input.blackMsLeft),
-	});
-	if (moveError) {
-		throw new Error(`Could not record move: ${moveError.message}`);
+	const { error } = await supabase.rpc('chess_resign', { p_game_id: gameID });
+	if (error) {
+		throw new Error(`Could not resign: ${error.message}`);
 	}
-	const { error: gameError } = await supabase
-		.from('chess_games')
-		.update({ fen: input.fenAfter, pgn: input.pgn })
-		.eq('id', input.gameID);
-	if (gameError) {
-		throw new Error(`Could not update game position: ${gameError.message}`);
+}
+
+/** Asks the server to verify and apply a flag fall. No-op if time remains. */
+export async function claimTimeout(gameID: string): Promise<void> {
+	const supabase = getSupabase();
+	const { error } = await supabase.rpc('chess_claim_timeout', { p_game_id: gameID });
+	if (error) {
+		throw new Error(`Could not claim timeout: ${error.message}`);
 	}
 }
 
@@ -151,18 +170,3 @@ export async function listMyGames(userID: string, limit: number): Promise<GameRo
 	return data ?? [];
 }
 
-export async function finishGame(
-	gameID: string,
-	result: GameResult,
-	reason: string,
-): Promise<void> {
-	const supabase = getSupabase();
-	const { error } = await supabase
-		.from('chess_games')
-		.update({ status: 'finished', result, result_reason: reason })
-		.eq('id', gameID)
-		.neq('status', 'finished');
-	if (error) {
-		throw new Error(`Could not finish game: ${error.message}`);
-	}
-}
