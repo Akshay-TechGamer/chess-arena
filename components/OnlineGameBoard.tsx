@@ -2,12 +2,15 @@
 
 // Online multiplayer board. Loads the game, joins if invited, syncs moves
 // over Realtime, and survives refresh (state rebuilt from chess_moves).
+// Also carries the in-game chat and rematch flow over channel broadcasts.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Chess, type Square } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
 import { ensureProfile, ensureSignedIn, getUsernames } from '@/lib/data/authRepo';
 import {
+	createRematchGame,
 	finishGame,
 	getGame,
 	joinGame,
@@ -17,7 +20,12 @@ import {
 	type GameRow,
 	type MoveRow,
 } from '@/lib/data/gamesRepo';
-import { subscribeToGame } from '@/lib/realtime/gameChannel';
+import {
+	subscribeToGame,
+	type ChatMessage,
+	type GameChannelHandle,
+	type RematchSignal,
+} from '@/lib/realtime/gameChannel';
 import { getGameStatus, type PlayerColor } from '@/lib/game/status';
 import { MoveList } from '@/components/MoveList';
 import { PromotionDialog } from '@/components/PromotionDialog';
@@ -43,12 +51,14 @@ function statusToResult(winner: PlayerColor | 'draw'): GameResult {
 }
 
 export function OnlineGameBoard({ gameID }: { gameID: string }) {
+	const router = useRouter();
 	const [game] = useState(() => new Chess());
 	const [fen, setFen] = useState(() => game.fen());
 	const [phase, setPhase] = useState<Phase>('loading');
 	const [errorMsg, setErrorMsg] = useState('');
 	const [gameRow, setGameRow] = useState<GameRow | null>(null);
 	const [myID, setMyID] = useState<string | null>(null);
+	const [myUsername, setMyUsername] = useState('');
 	const [names, setNames] = useState<Record<string, string>>({});
 	const [selected, setSelected] = useState<Square | null>(null);
 	const [pendingPromotion, setPendingPromotion] = useState<PendingPromotion | null>(null);
@@ -56,9 +66,14 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 	const [busy, setBusy] = useState(false);
 	const [banner, setBanner] = useState<string | null>(null);
 	const [copied, setCopied] = useState(false);
+	const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+	const [chatInput, setChatInput] = useState('');
+	const [incomingRematch, setIncomingRematch] = useState(false);
+	const [rematchSent, setRematchSent] = useState(false);
 
 	const gameRowRef = useRef<GameRow | null>(null);
 	gameRowRef.current = gameRow;
+	const channelRef = useRef<GameChannelHandle | null>(null);
 
 	const myColor: PlayerColor | null =
 		myID && gameRow
@@ -92,7 +107,7 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 		(async () => {
 			try {
 				const user = await ensureSignedIn();
-				await ensureProfile(user);
+				const profile = await ensureProfile(user);
 				let row = await getGame(gameID);
 				if (!row) {
 					throw new Error('Game not found — check the link.');
@@ -111,6 +126,7 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 				setFen(game.fen());
 				setGameRow(row);
 				setMyID(user.id);
+				setMyUsername(profile.username);
 				setPhase('ready');
 				getUsernames([row.white_id ?? '', row.black_id ?? '']).then((fetched) => {
 					if (!cancelled) {
@@ -129,12 +145,12 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 		};
 	}, [game, gameID]);
 
-	// Realtime subscription: opponent moves, game updates, presence.
+	// Realtime subscription: moves, game updates, presence, chat, rematch.
 	useEffect(() => {
 		if (!myID) {
 			return;
 		}
-		const unsubscribe = subscribeToGame(gameID, myID, {
+		const handle = subscribeToGame(gameID, myID, {
 			onMove: (move: MoveRow) => {
 				const played = game.history().length;
 				if (move.ply === played + 1) {
@@ -170,11 +186,26 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 					});
 				}
 			},
+			onChat: (message) => setChatMessages((prev) => [...prev.slice(-49), message]),
+			onRematch: (signal: RematchSignal) => {
+				if (signal.from === myID) {
+					return;
+				}
+				if (signal.kind === 'offer') {
+					setIncomingRematch(true);
+				} else if (signal.kind === 'start' && signal.gameID) {
+					router.push(`/game/${signal.gameID}`);
+				}
+			},
 		});
-		return unsubscribe;
+		channelRef.current = handle;
+		return () => {
+			channelRef.current = null;
+			handle.unsubscribe();
+		};
 		// names intentionally omitted: subscription must not restart on name loads
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [gameID, myID, game, resyncMoves]);
+	}, [gameID, myID, game, resyncMoves, router]);
 
 	const submitMove = useCallback(
 		(from: Square, to: Square, promotion?: 'q' | 'r' | 'b' | 'n'): boolean => {
@@ -261,6 +292,39 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 		});
 	}, [gameID]);
 
+	const sendChat = useCallback(() => {
+		const text = chatInput.trim().slice(0, 200);
+		if (!text || !myID) {
+			return;
+		}
+		const message: ChatMessage = { from: myID, username: myUsername, text };
+		channelRef.current?.sendChat(message);
+		setChatMessages((prev) => [...prev.slice(-49), message]);
+		setChatInput('');
+	}, [chatInput, myID, myUsername]);
+
+	const offerRematch = useCallback(() => {
+		if (!myID) {
+			return;
+		}
+		channelRef.current?.sendRematch({ kind: 'offer', from: myID });
+		setRematchSent(true);
+	}, [myID]);
+
+	const acceptRematch = useCallback(async () => {
+		if (!myID || !gameRow?.white_id || !gameRow.black_id) {
+			return;
+		}
+		try {
+			// colors swap for the rematch
+			const next = await createRematchGame(gameRow.black_id, gameRow.white_id);
+			channelRef.current?.sendRematch({ kind: 'start', from: myID, gameID: next.id });
+			router.push(`/game/${next.id}`);
+		} catch {
+			setBanner('Could not start rematch.');
+		}
+	}, [myID, gameRow, router]);
+
 	if (phase === 'loading') {
 		return <p className="page-note">Loading game…</p>;
 	}
@@ -285,13 +349,13 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 	const whiteName = names[gameRow.white_id ?? ''] ?? 'White';
 	const blackName = names[gameRow.black_id ?? ''] ?? 'Black';
 	const opponentOnline = presenceCount >= 2;
+	const finished = gameRow.status === 'finished';
 
-	const statusText =
-		gameRow.status === 'finished'
-			? `${RESULT_TEXT[gameRow.result ?? ''] ?? 'Game over'} — ${(gameRow.result_reason ?? '').replace(/_/g, ' ')}`
-			: busy
-				? 'Sending move…'
-				: localStatus.text;
+	const statusText = finished
+		? `${RESULT_TEXT[gameRow.result ?? ''] ?? 'Game over'} — ${(gameRow.result_reason ?? '').replace(/_/g, ' ')}`
+		: busy
+			? 'Sending move…'
+			: localStatus.text;
 
 	const legalTargets = selected
 		? game.moves({ square: selected, verbose: true }).map((move) => move.to)
@@ -368,15 +432,60 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 						● Opponent {opponentOnline ? 'online' : 'offline'}
 					</p>
 				)}
-				<div className={`status-banner${gameRow.status === 'finished' ? ' status-over' : ''}`}>
+				<div className={`status-banner${finished ? ' status-over' : ''}`}>
 					{banner ?? statusText}
 				</div>
+				{finished && myColor !== null && (
+					<div className="button-row">
+						{incomingRematch ? (
+							<button type="button" className="btn btn-primary" onClick={acceptRematch}>
+								✓ Accept rematch
+							</button>
+						) : (
+							<button type="button" className="btn" onClick={offerRematch} disabled={rematchSent}>
+								{rematchSent ? 'Rematch offered…' : 'Offer rematch'}
+							</button>
+						)}
+					</div>
+				)}
 				<MoveList moves={game.history()} />
 				{gameRow.status === 'active' && myColor !== null && (
 					<div className="button-row">
 						<button type="button" className="btn" onClick={resign}>
 							Resign
 						</button>
+					</div>
+				)}
+				{myColor !== null && (
+					<div className="chat-box">
+						<div className="chat-messages">
+							{chatMessages.length === 0 && <p className="chat-empty">Say hi 👋</p>}
+							{chatMessages.map((message, index) => (
+								<p key={index} className="chat-line">
+									<span className={message.from === myID ? 'chat-me' : 'chat-them'}>
+										{message.username}:
+									</span>{' '}
+									{message.text}
+								</p>
+							))}
+						</div>
+						<div className="chat-input-row">
+							<input
+								className="chat-input"
+								value={chatInput}
+								onChange={(event) => setChatInput(event.target.value)}
+								onKeyDown={(event) => {
+									if (event.key === 'Enter') {
+										sendChat();
+									}
+								}}
+								placeholder="Message…"
+								maxLength={200}
+							/>
+							<button type="button" className="btn btn-small" onClick={sendChat}>
+								Send
+							</button>
+						</div>
 					</div>
 				)}
 			</aside>

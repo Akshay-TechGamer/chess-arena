@@ -108,6 +108,35 @@ export async function recordMove(input: RecordMoveInput): Promise<void> {
 	}
 }
 
+/** Rematch: both players known up front, game starts immediately. */
+export async function createRematchGame(whiteID: string, blackID: string): Promise<GameRow> {
+	const supabase = getSupabase();
+	const { data, error } = await supabase
+		.from('chess_games')
+		.insert({ mode: 'online', status: 'active', white_id: whiteID, black_id: blackID })
+		.select()
+		.single();
+	if (error || !data) {
+		throw new Error(`Could not create rematch: ${error?.message}`);
+	}
+	return data;
+}
+
+/** Latest games this user played (any status), newest first. */
+export async function listMyGames(userID: string, limit: number): Promise<GameRow[]> {
+	const supabase = getSupabase();
+	const { data, error } = await supabase
+		.from('chess_games')
+		.select()
+		.or(`white_id.eq.${userID},black_id.eq.${userID}`)
+		.order('created_at', { ascending: false })
+		.limit(limit);
+	if (error) {
+		throw new Error(`Could not load games: ${error.message}`);
+	}
+	return data ?? [];
+}
+
 export async function finishGame(
 	gameID: string,
 	result: GameResult,

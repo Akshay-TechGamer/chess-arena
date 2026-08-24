@@ -13,9 +13,17 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 		<html lang="en">
 			<body>
 				<header className="site-header">
-					<Link href="/" className="site-logo">
-						♞ Chess Arena
-					</Link>
+					<div className="site-nav">
+						<Link href="/" className="site-logo">
+							♞ Chess Arena
+						</Link>
+						<Link href="/games" className="nav-link">
+							My games
+						</Link>
+						<Link href="/leaderboard" className="nav-link">
+							Leaderboard
+						</Link>
+					</div>
 					<AuthButton />
 				</header>
 				<main className="container">{children}</main>

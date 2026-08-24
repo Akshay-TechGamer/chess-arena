@@ -95,6 +95,29 @@ export type Database = {
           },
         ]
       }
+      chess_matchmaking_queue: {
+        Row: {
+          enqueued_at: string
+          user_id: string
+        }
+        Insert: {
+          enqueued_at?: string
+          user_id: string
+        }
+        Update: {
+          enqueued_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chess_matchmaking_queue_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "chess_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chess_moves: {
         Row: {
           black_ms_left: number
@@ -464,6 +487,8 @@ export type Database = {
         Returns: string
       }
       admin_list: { Args: { p_key: string }; Returns: Json }
+      chess_quick_match: { Args: never; Returns: string }
+      chess_quick_match_cancel: { Args: never; Returns: undefined }
       claim_status: { Args: { claim_id: string }; Returns: string }
       create_claim: { Args: { p_name: string; p_ref: string }; Returns: string }
       create_wish: {
