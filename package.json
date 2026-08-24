@@ -14,6 +14,7 @@
     "copy-engine": "node scripts/copy-engine.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.109.0",
     "chess.js": "^1.4.0",
     "next": "15.5.23",
     "react": "19.1.0",

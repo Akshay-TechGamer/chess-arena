@@ -10,6 +10,7 @@ import { StockfishEngine } from '@/lib/engine/stockfish';
 import { getEngineLevel, type EngineLevelID } from '@/lib/game/levels';
 import { getGameStatus, type PlayerColor } from '@/lib/game/status';
 import { MoveList } from '@/components/MoveList';
+import { PromotionDialog } from '@/components/PromotionDialog';
 
 export interface GameBoardProps {
 	mode: 'local' | 'computer';
@@ -21,13 +22,6 @@ interface PendingPromotion {
 	from: Square;
 	to: Square;
 }
-
-const PROMOTION_PIECES: ReadonlyArray<{ piece: 'q' | 'r' | 'b' | 'n'; glyph: string; label: string }> = [
-	{ piece: 'q', glyph: '♛', label: 'Queen' },
-	{ piece: 'r', glyph: '♜', label: 'Rook' },
-	{ piece: 'b', glyph: '♝', label: 'Bishop' },
-	{ piece: 'n', glyph: '♞', label: 'Knight' },
-];
 
 export function GameBoard({ mode, level = 'medium', playerColor = 'white' }: GameBoardProps) {
 	const [game] = useState(() => new Chess());
@@ -219,27 +213,12 @@ export function GameBoard({ mode, level = 'medium', playerColor = 'white' }: Gam
 				<div className="board-wrap">
 					<Chessboard options={boardOptions} />
 					{pendingPromotion && (
-						<div className="promo-overlay">
-							<div className="promo-dialog">
-								<p>Promote to</p>
-								<div className="promo-choices">
-									{PROMOTION_PIECES.map(({ piece, glyph, label }) => (
-										<button
-											key={piece}
-											type="button"
-											className="promo-btn"
-											aria-label={label}
-											onClick={() => {
-												makeMove(pendingPromotion.from, pendingPromotion.to, piece);
-												setPendingPromotion(null);
-											}}
-										>
-											{glyph}
-										</button>
-									))}
-								</div>
-							</div>
-						</div>
+						<PromotionDialog
+							onPick={(piece) => {
+								makeMove(pendingPromotion.from, pendingPromotion.to, piece);
+								setPendingPromotion(null);
+							}}
+						/>
 					)}
 				</div>
 			</div>

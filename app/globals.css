@@ -39,6 +39,30 @@ button {
 	padding: 14px 24px;
 	background: var(--bg-raised);
 	border-bottom: 1px solid var(--border);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.auth-box {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.auth-name {
+	color: var(--muted);
+	font-size: 0.9rem;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 180px;
+}
+
+.btn-small {
+	padding: 6px 12px;
+	font-size: 0.85rem;
 }
 
 .site-logo {
@@ -299,6 +323,77 @@ button {
 	background: var(--card);
 	border: 1px solid var(--border);
 	border-radius: 8px;
+}
+
+/* ---------- Online mode ---------- */
+
+.page-note {
+	text-align: center;
+	color: var(--muted);
+	font-size: 1.05rem;
+	padding: 48px 0;
+}
+
+.invite-panel {
+	max-width: 480px;
+	margin: 48px auto;
+	text-align: center;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	align-items: center;
+}
+
+.invite-code {
+	font-size: 2.6rem;
+	font-weight: 800;
+	letter-spacing: 0.35em;
+	padding: 14px 24px 14px calc(24px + 0.35em);
+	background: var(--card);
+	border: 2px dashed var(--border);
+	border-radius: 12px;
+	font-variant-numeric: tabular-nums;
+}
+
+.join-row {
+	display: flex;
+	gap: 10px;
+}
+
+.join-input {
+	flex: 1;
+	padding: 10px 14px;
+	background: var(--card);
+	color: var(--text);
+	border: 2px solid var(--border);
+	border-radius: 8px;
+	font: inherit;
+	font-size: 1.1rem;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+}
+
+.join-input:focus {
+	outline: none;
+	border-color: var(--accent);
+}
+
+.form-error {
+	color: #e0876f;
+	margin-top: 12px;
+}
+
+.presence {
+	margin: 0;
+	font-size: 0.88rem;
+}
+
+.presence-on {
+	color: var(--accent-strong);
+}
+
+.presence-off {
+	color: var(--muted);
 }
 
 /* ---------- Promotion dialog ---------- */

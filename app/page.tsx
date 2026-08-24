@@ -15,11 +15,11 @@ export default function Home() {
 					<span className="mode-name">2 Players</span>
 					<span className="mode-desc">Play a friend on this device</span>
 				</Link>
-				<div className="mode-card mode-card-disabled" aria-disabled="true">
+				<Link href="/play/online" className="mode-card">
 					<span className="mode-icon">🌍</span>
 					<span className="mode-name">Online</span>
-					<span className="mode-desc">Coming soon — invite links and quick match</span>
-				</div>
+					<span className="mode-desc">Invite a friend with a link — play live</span>
+				</Link>
 			</div>
 		</div>
 	);
