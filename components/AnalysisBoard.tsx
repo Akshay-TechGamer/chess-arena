@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Chess } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
+import { DARK_SQUARE_STYLE, LIGHT_SQUARE_STYLE } from '@/lib/game/boardTheme';
 import { getGame, listMoves } from '@/lib/data/gamesRepo';
 import { getUsernames } from '@/lib/data/authRepo';
 import { StockfishEngine } from '@/lib/engine/stockfish';
@@ -187,6 +188,8 @@ export function AnalysisBoard({ gameID }: { gameID: string }) {
 					<Chessboard
 						options={{
 							id: 'chess-arena-analysis-board',
+			lightSquareStyle: LIGHT_SQUARE_STYLE,
+			darkSquareStyle: DARK_SQUARE_STYLE,
 							position: fens[ply],
 							allowDragging: false,
 							animationDurationInMs: 150,

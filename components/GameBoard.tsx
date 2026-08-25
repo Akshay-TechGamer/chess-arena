@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Chess, type Square } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
+import { DARK_SQUARE_STYLE, LIGHT_SQUARE_STYLE } from '@/lib/game/boardTheme';
 import { StockfishEngine } from '@/lib/engine/stockfish';
 import { getEngineLevel, type EngineLevelID } from '@/lib/game/levels';
 import { getGameStatus, type PlayerColor } from '@/lib/game/status';
@@ -189,6 +190,8 @@ export function GameBoard({ mode, level = 'medium', playerColor = 'white' }: Gam
 
 	const boardOptions = {
 		id: 'chess-arena-board',
+			lightSquareStyle: LIGHT_SQUARE_STYLE,
+			darkSquareStyle: DARK_SQUARE_STYLE,
 		position: fen,
 		boardOrientation: mode === 'computer' ? playerColor : 'white' as const,
 		animationDurationInMs: 200,

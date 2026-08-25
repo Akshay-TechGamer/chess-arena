@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Chess, type Square } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
+import { DARK_SQUARE_STYLE, LIGHT_SQUARE_STYLE } from '@/lib/game/boardTheme';
 import { ensureProfile, ensureSignedIn, getUsernames } from '@/lib/data/authRepo';
 import {
 	claimTimeout,
@@ -449,6 +450,8 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 
 	const boardOptions = {
 		id: 'chess-arena-online-board',
+			lightSquareStyle: LIGHT_SQUARE_STYLE,
+			darkSquareStyle: DARK_SQUARE_STYLE,
 		position: fen,
 		boardOrientation: myColor ?? ('white' as const),
 		animationDurationInMs: 200,

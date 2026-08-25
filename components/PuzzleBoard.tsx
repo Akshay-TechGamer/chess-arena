@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Chess, type Square } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
+import { DARK_SQUARE_STYLE, LIGHT_SQUARE_STYLE } from '@/lib/game/boardTheme';
 import { derivePuzzlePosition, matchesSolution, uciToMove } from '@/lib/game/puzzle';
 import type { EngineMove } from '@/lib/game/uci';
 
@@ -171,6 +172,8 @@ export function PuzzleBoard() {
 					<Chessboard
 						options={{
 							id: 'chess-arena-puzzle-board',
+			lightSquareStyle: LIGHT_SQUARE_STYLE,
+			darkSquareStyle: DARK_SQUARE_STYLE,
 							position: fen,
 							boardOrientation: playerSide === 'w' ? 'white' : 'black',
 							animationDurationInMs: 200,

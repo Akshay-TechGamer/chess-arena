@@ -1,14 +1,19 @@
 :root {
-	--bg: #161512;
-	--bg-raised: #211f1a;
-	--card: #262421;
-	--card-hover: #2e2b27;
-	--border: #3d3934;
-	--text: #ece8e1;
-	--muted: #a29e94;
-	--accent: #7fa650;
-	--accent-strong: #8fbc5a;
-	--shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+	/* "Grandmaster Prime" — deep navy + gold */
+	--bg: #051424;
+	--bg-raised: #0d1c2d;
+	--card: #122131;
+	--card-hover: #1c2b3c;
+	--border: #273647;
+	--text: #d4e4fa;
+	--muted: #8b93a3;
+	--accent: #e9c349;
+	--accent-strong: #ffe088;
+	--on-accent: #3c2f00;
+	/* semantic */
+	--positive: #6fc27a;
+	--negative: #ff8f8a;
+	--shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
 }
 
 * {
@@ -224,7 +229,7 @@ button {
 
 .move-san-active {
 	background: var(--accent);
-	color: #1a1a14;
+	color: var(--on-accent);
 }
 
 .move-san-active:hover {
@@ -504,7 +509,7 @@ button {
 .btn-primary {
 	background: var(--accent);
 	border-color: var(--accent);
-	color: #1a1a14;
+	color: var(--on-accent);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -559,7 +564,7 @@ button {
 	padding: 12px 14px;
 	background: var(--card);
 	border: 1px solid var(--border);
-	border-left: 4px solid var(--accent);
+	border-left: 4px solid var(--positive);
 	border-radius: 8px;
 	font-weight: 600;
 }
@@ -672,7 +677,7 @@ button {
 }
 
 .presence-on {
-	color: var(--accent-strong);
+	color: var(--positive);
 }
 
 .presence-off {
@@ -729,11 +734,11 @@ button {
 
 .over-win {
 	border-top: 4px solid var(--accent);
-	box-shadow: 0 0 60px -10px rgba(143, 188, 90, 0.5), var(--shadow);
+	box-shadow: 0 0 70px -10px rgba(233, 195, 73, 0.55), var(--shadow);
 }
 
 .over-loss {
-	border-top: 4px solid #d6a545;
+	border-top: 4px solid var(--negative);
 }
 
 .over-draw {
