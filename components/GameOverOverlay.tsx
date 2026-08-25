@@ -29,6 +29,8 @@ interface GameOverOverlayProps {
 	reason: string;
 	headline?: string;
 	accuracy?: AccuracyDisplay;
+	/** Rating change for this rated game (online only). */
+	eloDelta?: number | null;
 	actions: OverlayAction[];
 	onClose: () => void;
 }
@@ -64,6 +66,7 @@ export function GameOverOverlay({
 	reason,
 	headline,
 	accuracy,
+	eloDelta,
 	actions,
 	onClose,
 }: GameOverOverlayProps) {
@@ -77,6 +80,12 @@ export function GameOverOverlay({
 				<h2 className="over-title">{TITLE[outcome]}</h2>
 				{headline && <p className="over-headline">{headline}</p>}
 				<p className="over-reason">{prettyReason(reason)}</p>
+				{eloDelta != null && (
+					<div className={`over-elo ${eloDelta >= 0 ? 'over-elo-up' : 'over-elo-down'}`}>
+						{eloDelta >= 0 ? '▲' : '▼'} {eloDelta >= 0 ? '+' : ''}
+						{eloDelta} Elo
+					</div>
+				)}
 				{SUBTEXT[outcome] && <p className="over-sub">{SUBTEXT[outcome]}</p>}
 
 				{accuracy && (

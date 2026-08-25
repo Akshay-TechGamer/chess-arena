@@ -16,14 +16,27 @@ import {
 	whiteWinPercent,
 	type EngineScore,
 } from '@/lib/game/evaluation';
+import { GRADE_LABEL, gradeMove, reviewText, type MoveGrade } from '@/lib/game/moveReview';
 import { MoveList } from '@/components/MoveList';
 
-const EVAL_MOVETIME_MS = 900;
+const EVAL_MOVETIME_MS = 600;
 const EVAL_DEBOUNCE_MS = 250;
 
 interface PositionEval {
 	scoreForWhite: EngineScore;
 	bestSan: string;
+}
+
+interface MoveReview {
+	grade: MoveGrade;
+	playedSan: string;
+	bestSan: string;
+	/** Best alternative move (green arrow). */
+	bestFrom: string;
+	bestTo: string;
+	/** The move actually played (pink highlight). */
+	playedFrom: string;
+	playedTo: string;
 }
 
 export function AnalysisBoard({ gameID }: { gameID: string }) {
@@ -32,6 +45,7 @@ export function AnalysisBoard({ gameID }: { gameID: string }) {
 	const [error, setError] = useState<string | null>(null);
 	const [ply, setPly] = useState(0);
 	const [evaluation, setEvaluation] = useState<PositionEval | null>(null);
+	const [review, setReview] = useState<MoveReview | null>(null);
 	const [evaluating, setEvaluating] = useState(false);
 	const engineRef = useRef<StockfishEngine | null>(null);
 
@@ -103,47 +117,98 @@ export function AnalysisBoard({ gameID }: { gameID: string }) {
 		};
 	}, []);
 
-	// Evaluate the shown position (debounced so fast stepping stays smooth).
+	// Evaluate the shown position, and review the move that reached it.
 	useEffect(() => {
-		if (!fens) {
+		if (!fens || !sans) {
 			return;
 		}
-		const fen = fens[ply];
 		let cancelled = false;
 		setEvaluating(true);
-		const timer = setTimeout(() => {
-			engineRef.current
-				?.evaluate(fen, EVAL_MOVETIME_MS)
-				.then((result) => {
-					if (cancelled) {
-						return;
-					}
-					const sideToMove = fen.split(' ')[1] as 'w' | 'b';
-					const probe = new Chess(fen);
-					const bestSan = probe.move({
-						from: result.bestMove.from,
-						to: result.bestMove.to,
-						promotion: result.bestMove.promotion ?? 'q',
-					}).san;
-					setEvaluation({
-						scoreForWhite: toWhitePerspective(result.score, sideToMove),
-						bestSan,
-					});
+		const timer = setTimeout(async () => {
+			const engine = engineRef.current;
+			if (!engine) {
+				return;
+			}
+
+			// 1) The shown position: eval bar + best next move.
+			const shownFen = fens[ply];
+			let shownWinAfterMover: number | null = null; // opponent-to-move win% here
+			try {
+				const result = await engine.evaluate(shownFen, EVAL_MOVETIME_MS);
+				if (cancelled) {
+					return;
+				}
+				const side = shownFen.split(' ')[1] as 'w' | 'b';
+				const probe = new Chess(shownFen);
+				const bestSan = probe.move({
+					from: result.bestMove.from,
+					to: result.bestMove.to,
+					promotion: result.bestMove.promotion ?? 'q',
+				}).san;
+				setEvaluation({ scoreForWhite: toWhitePerspective(result.score, side), bestSan });
+				shownWinAfterMover = whiteWinPercent(result.score); // side-to-move (opponent) win%
+			} catch {
+				if (cancelled) {
+					return;
+				}
+				setEvaluation(null);
+			}
+
+			// 2) Review the move that led here (needs the previous position).
+			if (ply < 1) {
+				if (!cancelled) {
+					setReview(null);
 					setEvaluating(false);
-				})
-				.catch(() => {
-					if (!cancelled) {
-						// Terminal position (mate/stalemate) — no move to suggest
-						setEvaluation(null);
-						setEvaluating(false);
-					}
+				}
+				return;
+			}
+			try {
+				const prevFen = fens[ply - 1];
+				const prevRes = await engine.evaluate(prevFen, EVAL_MOVETIME_MS);
+				if (cancelled) {
+					return;
+				}
+				const before = new Chess(prevFen);
+				const played = before.move(sans[ply - 1]); // the move actually played
+				const bestProbe = new Chess(prevFen);
+				const best = bestProbe.move({
+					from: prevRes.bestMove.from,
+					to: prevRes.bestMove.to,
+					promotion: prevRes.bestMove.promotion ?? 'q',
 				});
+				// win% for the mover before, and after the played move
+				const winBefore = whiteWinPercent(prevRes.score); // mover to move at prevFen
+				const chessAfter = new Chess(shownFen);
+				const winAfter = chessAfter.isCheckmate()
+					? 100 // the move delivered mate
+					: shownWinAfterMover != null
+						? 100 - shownWinAfterMover
+						: winBefore;
+				const grade = gradeMove(winBefore - winAfter, played.san === best.san);
+				setReview({
+					grade,
+					playedSan: played.san,
+					bestSan: best.san,
+					bestFrom: best.from,
+					bestTo: best.to,
+					playedFrom: played.from,
+					playedTo: played.to,
+				});
+			} catch {
+				if (!cancelled) {
+					setReview(null);
+				}
+			} finally {
+				if (!cancelled) {
+					setEvaluating(false);
+				}
+			}
 		}, EVAL_DEBOUNCE_MS);
 		return () => {
 			cancelled = true;
 			clearTimeout(timer);
 		};
-	}, [fens, ply]);
+	}, [fens, sans, ply]);
 
 	const maxPly = sans?.length ?? 0;
 	const step = useCallback(
@@ -175,6 +240,17 @@ export function AnalysisBoard({ gameID }: { gameID: string }) {
 
 	const barPercent = evaluation ? whiteWinPercent(evaluation.scoreForWhite) : 50;
 
+	// Pink highlight on the move that was played; green arrow for the better one.
+	const squareStyles: Record<string, React.CSSProperties> = {};
+	const arrows: Array<{ startSquare: string; endSquare: string; color: string }> = [];
+	if (review) {
+		squareStyles[review.playedFrom] = { backgroundColor: 'rgba(255, 120, 130, 0.45)' };
+		squareStyles[review.playedTo] = { backgroundColor: 'rgba(255, 120, 130, 0.55)' };
+		if (review.grade !== 'best') {
+			arrows.push({ startSquare: review.bestFrom, endSquare: review.bestTo, color: '#5fbf6a' });
+		}
+	}
+
 	return (
 		<div className="game-layout">
 			<div className="eval-bar" title="White's winning chances">
@@ -188,11 +264,13 @@ export function AnalysisBoard({ gameID }: { gameID: string }) {
 					<Chessboard
 						options={{
 							id: 'chess-arena-analysis-board',
-			lightSquareStyle: LIGHT_SQUARE_STYLE,
-			darkSquareStyle: DARK_SQUARE_STYLE,
+							lightSquareStyle: LIGHT_SQUARE_STYLE,
+							darkSquareStyle: DARK_SQUARE_STYLE,
 							position: fens[ply],
 							allowDragging: false,
 							animationDurationInMs: 150,
+							squareStyles,
+							arrows,
 						}}
 					/>
 				</div>
@@ -228,6 +306,18 @@ export function AnalysisBoard({ gameID }: { gameID: string }) {
 							? `Eval ${formatScore(evaluation.scoreForWhite)} · Best: ${evaluation.bestSan}`
 							: 'Game over position'}
 				</div>
+				{review && !evaluating && (
+					<div className={`review-card review-${review.grade}`}>
+						<div className="review-head">
+							<span className="review-dot" />
+							{review.grade === 'blunder' ? 'Missed win / Blunder' : GRADE_LABEL[review.grade]}
+						</div>
+						<p className="review-text">
+							You played <b>{review.playedSan}</b>.{' '}
+							{reviewText(review.grade, review.playedSan, review.bestSan)}
+						</p>
+					</div>
+				)}
 				<MoveList moves={sans ?? []} activePly={ply} onSelectPly={setPly} />
 				<p className="game-subtitle">Tip: use ← → arrow keys to step through moves.</p>
 			</aside>

@@ -10,7 +10,7 @@ import { Chess, type Square } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
 import { DARK_SQUARE_STYLE, LIGHT_SQUARE_STYLE } from '@/lib/game/boardTheme';
 import { useGameAccuracy } from '@/lib/engine/accuracyAnalysis';
-import { ensureProfile, ensureSignedIn, getUsernames } from '@/lib/data/authRepo';
+import { ensureProfile, ensureSignedIn, getMyRating, getUsernames } from '@/lib/data/authRepo';
 import {
 	claimTimeout,
 	createRematchGame,
@@ -73,6 +73,8 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 	const [incomingRematch, setIncomingRematch] = useState(false);
 	const [rematchSent, setRematchSent] = useState(false);
 	const [overlayClosed, setOverlayClosed] = useState(false);
+	const [eloDelta, setEloDelta] = useState<number | null>(null);
+	const ratingBeforeRef = useRef<number | null>(null);
 
 	const gameRowRef = useRef<GameRow | null>(null);
 	gameRowRef.current = gameRow;
@@ -100,6 +102,23 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isFinishedTop, fen]);
 	const accuracy = useGameAccuracy(gameFens, isFinishedTop && !overlayClosed);
+
+	// Once the game finishes, the Elo trigger has run — fetch my new rating and
+	// show the delta (only if we captured a "before" this session).
+	useEffect(() => {
+		if (!isFinishedTop || !myID || ratingBeforeRef.current === null) {
+			return;
+		}
+		let cancelled = false;
+		getMyRating(myID).then((after) => {
+			if (!cancelled && after !== null && ratingBeforeRef.current !== null) {
+				setEloDelta(after - ratingBeforeRef.current);
+			}
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [isFinishedTop, myID]);
 
 	const myColor: PlayerColor | null =
 		myID && gameRow
@@ -137,6 +156,10 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 				let row = await getGame(gameID);
 				if (!row) {
 					throw new Error('Game not found — check the link.');
+				}
+				// Capture my rating before the result lands, for the Elo delta.
+				if (row.status !== 'finished') {
+					ratingBeforeRef.current = profile.elo_rating;
 				}
 				if (row.status === 'waiting' && !row.black_id && row.white_id !== user.id) {
 					row = await joinGame(gameID, user.id);
@@ -653,6 +676,7 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 									},
 								],
 				}}
+				eloDelta={myColor !== null ? eloDelta : null}
 				onClose={() => setOverlayClosed(true)}
 				actions={[
 					...(myColor !== null

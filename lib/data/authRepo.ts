@@ -10,6 +10,17 @@ export interface ChessProfile {
 	elo_rating: number;
 }
 
+/** Current Elo rating for a user, or null if they have no profile yet. */
+export async function getMyRating(userID: string): Promise<number | null> {
+	const supabase = getSupabase();
+	const { data } = await supabase
+		.from('chess_profiles')
+		.select('elo_rating')
+		.eq('id', userID)
+		.maybeSingle();
+	return data?.elo_rating ?? null;
+}
+
 /** Returns the signed-in user, creating an anonymous session if needed. */
 export async function ensureSignedIn(): Promise<User> {
 	const supabase = getSupabase();

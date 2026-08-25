@@ -199,6 +199,82 @@ button {
 	transition: height 0.4s ease;
 }
 
+.review-card {
+	background: var(--card);
+	border: 1px solid var(--border);
+	border-left: 4px solid var(--muted);
+	border-radius: 8px;
+	padding: 10px 14px;
+}
+
+.review-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-weight: 700;
+}
+
+.review-dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: var(--muted);
+	flex: 0 0 auto;
+}
+
+.review-text {
+	margin: 6px 0 0;
+	color: var(--muted);
+	font-size: 0.9rem;
+}
+
+.review-best {
+	border-left-color: var(--positive);
+}
+.review-best .review-dot {
+	background: var(--positive);
+}
+.review-best .review-head {
+	color: var(--positive);
+}
+
+.review-good {
+	border-left-color: #8bd18f;
+}
+.review-good .review-dot {
+	background: #8bd18f;
+}
+
+.review-inaccuracy {
+	border-left-color: #e9c349;
+}
+.review-inaccuracy .review-dot {
+	background: #e9c349;
+}
+.review-inaccuracy .review-head {
+	color: #e9c349;
+}
+
+.review-mistake {
+	border-left-color: #f0a352;
+}
+.review-mistake .review-dot {
+	background: #f0a352;
+}
+.review-mistake .review-head {
+	color: #f0a352;
+}
+
+.review-blunder {
+	border-left-color: var(--negative);
+}
+.review-blunder .review-dot {
+	background: var(--negative);
+}
+.review-blunder .review-head {
+	color: var(--negative);
+}
+
 .stepper-row {
 	display: flex;
 	align-items: center;
@@ -804,6 +880,27 @@ button {
 .over-headline {
 	margin: 0 0 4px;
 	font-weight: 600;
+}
+
+.over-elo {
+	display: inline-block;
+	margin: 10px 0 2px;
+	padding: 6px 16px;
+	border-radius: 999px;
+	font-weight: 800;
+	font-variant-numeric: tabular-nums;
+	border: 1px solid var(--border);
+	background: var(--card);
+}
+
+.over-elo-up {
+	color: var(--positive);
+	border-color: rgba(111, 194, 122, 0.4);
+}
+
+.over-elo-down {
+	color: var(--negative);
+	border-color: rgba(255, 143, 138, 0.4);
 }
 
 /* Accuracy stats card */
