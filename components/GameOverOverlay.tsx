@@ -1,7 +1,7 @@
 'use client';
 
-// End-of-game overlay: celebratory for a win, encouraging for a loss, calm
-// for a draw. Used by both the online board and the vs-computer board.
+// End-of-game overlay: "Victory" for a win, "Game Over." for a loss, "Draw"
+// for a draw — with an accuracy stats card. Used by online + vs-computer.
 
 export type Outcome = 'win' | 'loss' | 'draw' | 'spectator';
 
@@ -12,20 +12,31 @@ export interface OverlayAction {
 	disabled?: boolean;
 }
 
+export interface AccuracyRow {
+	label: string;
+	percent: number | null;
+	highlight?: boolean;
+}
+
+export interface AccuracyDisplay {
+	loading: boolean;
+	progress: number;
+	rows: AccuracyRow[];
+}
+
 interface GameOverOverlayProps {
 	outcome: Outcome;
-	/** Machine reason like "checkmate", "timeout", "resignation". */
 	reason: string;
-	/** Shown for spectators / draws, e.g. "White wins". */
 	headline?: string;
+	accuracy?: AccuracyDisplay;
 	actions: OverlayAction[];
 	onClose: () => void;
 }
 
 const TITLE: Record<Outcome, string> = {
-	win: 'You won! 🎉',
-	loss: 'You lost',
-	draw: "It's a draw 🤝",
+	win: 'Victory',
+	loss: 'Game Over.',
+	draw: 'Draw',
 	spectator: 'Game over',
 };
 
@@ -37,9 +48,9 @@ const EMOJI: Record<Outcome, string> = {
 };
 
 const SUBTEXT: Record<Outcome, string> = {
-	win: 'Well played. Want to go again?',
-	loss: 'Good game — review it to see where it slipped and find the better moves.',
-	draw: 'Evenly matched. Rematch?',
+	win: 'Well played!',
+	loss: 'Nice effort — review it to see the better moves.',
+	draw: 'Evenly matched.',
 	spectator: '',
 };
 
@@ -48,7 +59,14 @@ function prettyReason(reason: string): string {
 	return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-export function GameOverOverlay({ outcome, reason, headline, actions, onClose }: GameOverOverlayProps) {
+export function GameOverOverlay({
+	outcome,
+	reason,
+	headline,
+	accuracy,
+	actions,
+	onClose,
+}: GameOverOverlayProps) {
 	return (
 		<div className="over-backdrop" onClick={onClose}>
 			<div className={`over-card over-${outcome}`} onClick={(e) => e.stopPropagation()} role="dialog">
@@ -60,6 +78,28 @@ export function GameOverOverlay({ outcome, reason, headline, actions, onClose }:
 				{headline && <p className="over-headline">{headline}</p>}
 				<p className="over-reason">{prettyReason(reason)}</p>
 				{SUBTEXT[outcome] && <p className="over-sub">{SUBTEXT[outcome]}</p>}
+
+				{accuracy && (
+					<div className="over-stats">
+						<div className="over-stats-head">
+							<span>Accuracy</span>
+							{accuracy.loading && <span className="over-stats-prog">{accuracy.progress}%</span>}
+						</div>
+						{accuracy.rows.map((row) => (
+							<div key={row.label} className={`over-stat-row${row.highlight ? ' over-stat-me' : ''}`}>
+								<span className="over-stat-label">{row.label}</span>
+								<span className="over-stat-value">
+									{row.percent == null
+										? accuracy.loading
+											? '…'
+											: '—'
+										: `${row.percent.toFixed(1)}%`}
+								</span>
+							</div>
+						))}
+					</div>
+				)}
+
 				<div className="over-actions">
 					{actions.map((action) => (
 						<button

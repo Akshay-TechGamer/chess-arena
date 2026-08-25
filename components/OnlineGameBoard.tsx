@@ -4,11 +4,12 @@
 // over Realtime, and survives refresh (state rebuilt from chess_moves).
 // Also carries the in-game chat and rematch flow over channel broadcasts.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Chess, type Square } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
 import { DARK_SQUARE_STYLE, LIGHT_SQUARE_STYLE } from '@/lib/game/boardTheme';
+import { useGameAccuracy } from '@/lib/engine/accuracyAnalysis';
 import { ensureProfile, ensureSignedIn, getUsernames } from '@/lib/data/authRepo';
 import {
 	claimTimeout,
@@ -81,6 +82,24 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 	const [, setClockTick] = useState(0);
 
 	const timed = (gameRow?.time_control_secs ?? UNLIMITED_TIME) !== UNLIMITED_TIME;
+
+	// Accuracy analysis once the game is finished (top-level hook — must run
+	// before any early return).
+	const isFinishedTop = gameRow?.status === 'finished';
+	const gameFens = useMemo(() => {
+		if (!isFinishedTop) {
+			return null;
+		}
+		const replay = new Chess();
+		const list = [replay.fen()];
+		for (const san of game.history()) {
+			replay.move(san);
+			list.push(replay.fen());
+		}
+		return list;
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isFinishedTop, fen]);
+	const accuracy = useGameAccuracy(gameFens, isFinishedTop && !overlayClosed);
 
 	const myColor: PlayerColor | null =
 		myID && gameRow
@@ -607,6 +626,33 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 				outcome={myOutcome}
 				reason={gameRow.result_reason ?? 'game over'}
 				headline={myColor === null ? statusText : undefined}
+				accuracy={{
+					loading: accuracy.loading,
+					progress: accuracy.progress,
+					rows:
+						myColor === null
+							? [
+									{ label: 'White', percent: accuracy.result?.white ?? null },
+									{ label: 'Black', percent: accuracy.result?.black ?? null },
+								]
+							: [
+									{
+										label: 'You',
+										percent:
+											(myColor === 'white'
+												? accuracy.result?.white
+												: accuracy.result?.black) ?? null,
+										highlight: true,
+									},
+									{
+										label: 'Opponent',
+										percent:
+											(myColor === 'white'
+												? accuracy.result?.black
+												: accuracy.result?.white) ?? null,
+									},
+								],
+				}}
 				onClose={() => setOverlayClosed(true)}
 				actions={[
 					...(myColor !== null

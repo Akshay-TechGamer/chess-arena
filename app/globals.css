@@ -694,6 +694,7 @@ button {
 	align-items: center;
 	justify-content: center;
 	padding: 20px;
+	overflow-y: auto;
 	background: rgba(0, 0, 0, 0.66);
 	backdrop-filter: blur(3px);
 	animation: over-fade 0.2s ease;
@@ -782,12 +783,84 @@ button {
 
 .over-title {
 	margin: 10px 0 2px;
-	font-size: 1.7rem;
+	font-size: 2rem;
+	font-weight: 800;
+	letter-spacing: 0.01em;
+}
+
+.over-win .over-title {
+	color: var(--accent);
+	text-shadow: 0 0 24px rgba(233, 195, 73, 0.5);
+}
+
+.over-loss .over-title {
+	color: var(--negative);
+}
+
+.over-draw .over-title {
+	color: var(--text);
 }
 
 .over-headline {
 	margin: 0 0 4px;
 	font-weight: 600;
+}
+
+/* Accuracy stats card */
+.over-stats {
+	margin-top: 18px;
+	background: var(--card);
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	padding: 14px 16px;
+	text-align: left;
+}
+
+.over-stats-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	color: var(--muted);
+	font-size: 0.78rem;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	margin-bottom: 8px;
+}
+
+.over-stats-prog {
+	color: var(--accent);
+	font-weight: 700;
+}
+
+.over-stat-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 6px 0;
+}
+
+.over-stat-row + .over-stat-row {
+	border-top: 1px solid var(--border);
+}
+
+.over-stat-label {
+	color: var(--muted);
+}
+
+.over-stat-me .over-stat-label {
+	color: var(--text);
+	font-weight: 700;
+}
+
+.over-stat-value {
+	font-size: 1.3rem;
+	font-weight: 800;
+	font-variant-numeric: tabular-nums;
+	color: var(--text);
+}
+
+.over-stat-me .over-stat-value {
+	color: var(--accent);
 }
 
 .over-reason {

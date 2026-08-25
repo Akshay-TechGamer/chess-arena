@@ -3,12 +3,13 @@
 // Shared board for local 2-player and vs-computer games.
 // UI only — chess rules come from chess.js, engine moves from lib/engine.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Chess, type Square } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
 import { DARK_SQUARE_STYLE, LIGHT_SQUARE_STYLE } from '@/lib/game/boardTheme';
 import { StockfishEngine } from '@/lib/engine/stockfish';
+import { useGameAccuracy } from '@/lib/engine/accuracyAnalysis';
 import { getEngineLevel, type EngineLevelID } from '@/lib/game/levels';
 import { getGameStatus, type PlayerColor } from '@/lib/game/status';
 import { MoveList } from '@/components/MoveList';
@@ -42,6 +43,22 @@ export function GameBoard({ mode, level = 'medium', playerColor = 'white' }: Gam
 	const playerChar = playerColor === 'white' ? 'w' : 'b';
 	const isPlayersTurn =
 		!status.isOver && (mode === 'local' || (game.turn() === playerChar && !thinking));
+
+	// All position FENs, once the game is over — feeds the accuracy analysis.
+	const gameFens = useMemo(() => {
+		if (!status.isOver) {
+			return null;
+		}
+		const replay = new Chess();
+		const list = [replay.fen()];
+		for (const san of game.history()) {
+			replay.move(san);
+			list.push(replay.fen());
+		}
+		return list;
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [status.isOver, fen]);
+	const accuracy = useGameAccuracy(gameFens, status.isOver && !overlayClosed);
 
 	const syncPosition = useCallback(() => {
 		setFen(game.fen());
@@ -279,6 +296,33 @@ export function GameBoard({ mode, level = 'medium', playerColor = 'white' }: Gam
 				outcome={myOutcome}
 				reason={status.reason ?? 'game over'}
 				headline={mode === 'local' ? status.text : undefined}
+				accuracy={{
+					loading: accuracy.loading,
+					progress: accuracy.progress,
+					rows:
+						mode === 'local'
+							? [
+									{ label: 'White', percent: accuracy.result?.white ?? null },
+									{ label: 'Black', percent: accuracy.result?.black ?? null },
+								]
+							: [
+									{
+										label: 'You',
+										percent:
+											(playerColor === 'white'
+												? accuracy.result?.white
+												: accuracy.result?.black) ?? null,
+										highlight: true,
+									},
+									{
+										label: `${getEngineLevel(level).label} bot`,
+										percent:
+											(playerColor === 'white'
+												? accuracy.result?.black
+												: accuracy.result?.white) ?? null,
+									},
+								],
+				}}
 				onClose={() => setOverlayClosed(true)}
 				actions={[
 					{ label: '↺ New game', onClick: newGame, primary: true },
