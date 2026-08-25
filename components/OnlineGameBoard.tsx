@@ -10,7 +10,13 @@ import { Chess, type Square } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
 import { DARK_SQUARE_STYLE, LIGHT_SQUARE_STYLE } from '@/lib/game/boardTheme';
 import { useGameAccuracy } from '@/lib/engine/accuracyAnalysis';
-import { ensureProfile, ensureSignedIn, getMyRating, getUsernames } from '@/lib/data/authRepo';
+import {
+	ensureProfile,
+	ensureSignedIn,
+	getMyRating,
+	getPlayerInfos,
+	type PlayerInfo,
+} from '@/lib/data/authRepo';
 import {
 	claimTimeout,
 	createRematchGame,
@@ -29,9 +35,10 @@ import {
 	type RematchSignal,
 } from '@/lib/realtime/gameChannel';
 import { getGameStatus, type PlayerColor } from '@/lib/game/status';
-import { UNLIMITED_TIME, formatClock, liveClocks, type ClockSnapshot } from '@/lib/game/clock';
+import { UNLIMITED_TIME, liveClocks, type ClockSnapshot } from '@/lib/game/clock';
 import { MoveList } from '@/components/MoveList';
 import { PromotionDialog } from '@/components/PromotionDialog';
+import { PlayerCard } from '@/components/PlayerCard';
 import { GameOverOverlay, type Outcome } from '@/components/GameOverOverlay';
 
 interface StoredClocks extends ClockSnapshot {
@@ -61,7 +68,7 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 	const [gameRow, setGameRow] = useState<GameRow | null>(null);
 	const [myID, setMyID] = useState<string | null>(null);
 	const [myUsername, setMyUsername] = useState('');
-	const [names, setNames] = useState<Record<string, string>>({});
+	const [infos, setInfos] = useState<Record<string, PlayerInfo>>({});
 	const [selected, setSelected] = useState<Square | null>(null);
 	const [pendingPromotion, setPendingPromotion] = useState<PendingPromotion | null>(null);
 	const [presenceCount, setPresenceCount] = useState(1);
@@ -189,9 +196,9 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 				setMyID(user.id);
 				setMyUsername(profile.username);
 				setPhase('ready');
-				getUsernames([row.white_id ?? '', row.black_id ?? '']).then((fetched) => {
+				getPlayerInfos([row.white_id ?? '', row.black_id ?? '']).then((fetched) => {
 					if (!cancelled) {
-						setNames(fetched);
+						setInfos(fetched);
 					}
 				});
 			} catch (loadError) {
@@ -244,9 +251,9 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 					};
 				}
 				setGameRow(row);
-				if (row.black_id && !names[row.black_id]) {
-					getUsernames([row.black_id]).then((fetched) =>
-						setNames((prev) => ({ ...prev, ...fetched })),
+				if (row.black_id && !infos[row.black_id]) {
+					getPlayerInfos([row.black_id]).then((fetched) =>
+						setInfos((prev) => ({ ...prev, ...fetched })),
 					);
 				}
 			},
@@ -446,8 +453,10 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 		);
 	}
 
-	const whiteName = names[gameRow.white_id ?? ''] ?? 'White';
-	const blackName = names[gameRow.black_id ?? ''] ?? 'Black';
+	const whiteName = infos[gameRow.white_id ?? '']?.username ?? 'White';
+	const blackName = infos[gameRow.black_id ?? '']?.username ?? 'Black';
+	const ratingFor = (color: PlayerColor) =>
+		infos[(color === 'white' ? gameRow.white_id : gameRow.black_id) ?? '']?.elo_rating ?? null;
 	const opponentOnline = presenceCount >= 2;
 	const finished = gameRow.status === 'finished';
 
@@ -534,18 +543,18 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 	const clockFor = (color: PlayerColor) =>
 		displayClocks === null ? null : color === 'white' ? displayClocks.whiteMs : displayClocks.blackMs;
 	const nameFor = (color: PlayerColor) => (color === 'white' ? whiteName : blackName);
-	const clockChip = (color: PlayerColor) => {
+	const playerCard = (color: PlayerColor) => {
 		const ms = clockFor(color);
-		if (ms === null) {
-			return null;
-		}
 		const ticking =
 			gameRow.status === 'active' && game.turn() === (color === 'white' ? 'w' : 'b');
 		return (
-			<div className={`clock-chip${ticking ? ' clock-ticking' : ''}${ms < 30_000 ? ' clock-low' : ''}`}>
-				<span className="clock-name">{nameFor(color)}</span>
-				<span className="clock-time">{formatClock(ms)}</span>
-			</div>
+			<PlayerCard
+				name={nameFor(color)}
+				rating={ratingFor(color)}
+				clockMs={ms}
+				ticking={ticking}
+				you={myColor === color}
+			/>
 		);
 	};
 
@@ -553,7 +562,7 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 		<>
 		<div className="game-layout">
 			<div className="board-column">
-				{clockChip(topColor)}
+				{playerCard(topColor)}
 				<div className="board-wrap">
 					<Chessboard options={boardOptions} />
 					{pendingPromotion && (
@@ -565,7 +574,7 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 						/>
 					)}
 				</div>
-				{clockChip(bottomColor)}
+				{playerCard(bottomColor)}
 			</div>
 			<aside className="sidebar">
 				<p className="game-subtitle">

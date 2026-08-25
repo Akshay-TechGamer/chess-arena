@@ -50,6 +50,66 @@ button {
 	gap: 12px;
 }
 
+.side-rail {
+	display: none;
+	position: fixed;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	width: 72px;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+	padding: 16px 0;
+	background: var(--bg-raised);
+	border-right: 1px solid var(--border);
+	z-index: 60;
+}
+
+.rail-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 3px;
+	width: 56px;
+	padding: 8px 0;
+	border-radius: 10px;
+	color: var(--muted);
+	transition: background 0.15s, color 0.15s;
+}
+
+.rail-item:hover {
+	background: var(--card);
+	color: var(--text);
+}
+
+.rail-item-active {
+	background: var(--card);
+	color: var(--accent);
+}
+
+.rail-icon {
+	font-size: 1.35rem;
+	line-height: 1;
+}
+
+.rail-label {
+	font-size: 0.66rem;
+	font-weight: 600;
+}
+
+@media (min-width: 1024px) {
+	.side-rail {
+		display: flex;
+	}
+	body {
+		padding-left: 72px;
+	}
+	.nav-inline {
+		display: none;
+	}
+}
+
 .site-nav {
 	display: flex;
 	align-items: center;
@@ -322,6 +382,86 @@ button {
 	background: var(--card);
 	border: 1px solid var(--border);
 	border-radius: 8px;
+}
+
+/* Player card (avatar + name + rating + clock) */
+.player-card {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+	padding: 8px 12px;
+	margin: 6px 0;
+	background: var(--card);
+	border: 1px solid var(--border);
+	border-radius: 10px;
+}
+
+.player-id {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+}
+
+.player-avatar {
+	flex: 0 0 auto;
+	width: 38px;
+	height: 38px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 800;
+	font-size: 1.05rem;
+	background: var(--bg-raised);
+	color: var(--text);
+	border: 1px solid var(--border);
+}
+
+.player-avatar-you {
+	background: var(--accent);
+	color: var(--on-accent);
+	border-color: var(--accent);
+}
+
+.player-meta {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.player-name {
+	font-weight: 700;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.player-sub {
+	color: var(--muted);
+	font-size: 0.78rem;
+	font-variant-numeric: tabular-nums;
+}
+
+.player-clock {
+	font-size: 1.35rem;
+	font-weight: 800;
+	font-variant-numeric: tabular-nums;
+	padding: 4px 12px;
+	border-radius: 8px;
+	background: var(--bg-raised);
+	border: 1px solid var(--border);
+}
+
+.player-clock-ticking {
+	border-color: var(--positive);
+	color: var(--text);
+}
+
+.player-clock-low {
+	color: var(--negative);
+	border-color: var(--negative);
 }
 
 .clock-ticking {
@@ -1104,5 +1244,11 @@ button {
 		display: block;
 		overflow-x: auto;
 		white-space: nowrap;
+	}
+}
+
+@media (min-width: 1024px) {
+	.site-header .nav-inline {
+		display: none;
 	}
 }

@@ -14,6 +14,7 @@ import { getEngineLevel, type EngineLevelID } from '@/lib/game/levels';
 import { getGameStatus, type PlayerColor } from '@/lib/game/status';
 import { MoveList } from '@/components/MoveList';
 import { PromotionDialog } from '@/components/PromotionDialog';
+import { PlayerCard } from '@/components/PlayerCard';
 import { GameOverOverlay, type Outcome } from '@/components/GameOverOverlay';
 
 export interface GameBoardProps {
@@ -257,6 +258,7 @@ export function GameBoard({ mode, level = 'medium', playerColor = 'white' }: Gam
 		<>
 		<div className="game-layout">
 			<div className="board-column">
+				<PlayerCard name={mode === 'computer' ? `${getEngineLevel(level).label} bot` : 'Black'} />
 				<div className="board-wrap">
 					<Chessboard options={boardOptions} />
 					{pendingPromotion && (
@@ -268,6 +270,7 @@ export function GameBoard({ mode, level = 'medium', playerColor = 'white' }: Gam
 						/>
 					)}
 				</div>
+				<PlayerCard name={mode === 'computer' ? 'You' : 'White'} you={mode === 'computer'} />
 			</div>
 			<aside className="sidebar">
 				<p className="game-subtitle">{subtitle}</p>

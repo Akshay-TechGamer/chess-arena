@@ -10,6 +10,29 @@ export interface ChessProfile {
 	elo_rating: number;
 }
 
+export interface PlayerInfo {
+	username: string;
+	elo_rating: number;
+}
+
+/** Username + rating for a set of user ids, keyed by id. */
+export async function getPlayerInfos(ids: readonly string[]): Promise<Record<string, PlayerInfo>> {
+	const wanted = ids.filter(Boolean);
+	if (wanted.length === 0) {
+		return {};
+	}
+	const supabase = getSupabase();
+	const { data } = await supabase
+		.from('chess_profiles')
+		.select('id, username, elo_rating')
+		.in('id', wanted);
+	const map: Record<string, PlayerInfo> = {};
+	for (const row of data ?? []) {
+		map[row.id] = { username: row.username, elo_rating: row.elo_rating };
+	}
+	return map;
+}
+
 /** Current Elo rating for a user, or null if they have no profile yet. */
 export async function getMyRating(userID: string): Promise<number | null> {
 	const supabase = getSupabase();

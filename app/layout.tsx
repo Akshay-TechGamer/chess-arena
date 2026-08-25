@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { SiteHeader } from '@/components/SiteHeader';
+import { SideRail } from '@/components/SideRail';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -14,13 +15,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-	themeColor: '#211f1a',
+	themeColor: '#051424',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 	return (
 		<html lang="en">
 			<body>
+				<SideRail />
 				<SiteHeader />
 				<main className="container">{children}</main>
 			</body>
