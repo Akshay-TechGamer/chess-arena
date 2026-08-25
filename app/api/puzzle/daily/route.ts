@@ -3,11 +3,14 @@
 
 import { NextResponse } from 'next/server';
 
-export const revalidate = 3600; // one puzzle a day; re-fetch hourly is plenty
+// Run only at request time — never prerender at build (the build sandbox has
+// no outbound network, so fetching Lichess during build fails the deploy).
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
 	const response = await fetch('https://lichess.org/api/puzzle/daily', {
 		headers: { Accept: 'application/json' },
+		// cache the upstream response for an hour at request time
 		next: { revalidate: 3600 },
 	});
 	if (!response.ok) {
