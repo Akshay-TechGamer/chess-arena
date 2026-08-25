@@ -4,6 +4,7 @@
 // UI only — chess rules come from chess.js, engine moves from lib/engine.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Chess, type Square } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
 import { StockfishEngine } from '@/lib/engine/stockfish';
@@ -11,6 +12,7 @@ import { getEngineLevel, type EngineLevelID } from '@/lib/game/levels';
 import { getGameStatus, type PlayerColor } from '@/lib/game/status';
 import { MoveList } from '@/components/MoveList';
 import { PromotionDialog } from '@/components/PromotionDialog';
+import { GameOverOverlay, type Outcome } from '@/components/GameOverOverlay';
 
 export interface GameBoardProps {
 	mode: 'local' | 'computer';
@@ -30,7 +32,9 @@ export function GameBoard({ mode, level = 'medium', playerColor = 'white' }: Gam
 	const [pendingPromotion, setPendingPromotion] = useState<PendingPromotion | null>(null);
 	const [thinking, setThinking] = useState(false);
 	const [engineError, setEngineError] = useState<string | null>(null);
+	const [overlayClosed, setOverlayClosed] = useState(false);
 	const engineRef = useRef<StockfishEngine | null>(null);
+	const router = useRouter();
 
 	const status = getGameStatus(game);
 	const history = game.history();
@@ -134,7 +138,19 @@ export function GameBoard({ mode, level = 'medium', playerColor = 'white' }: Gam
 		game.reset();
 		setPendingPromotion(null);
 		setEngineError(null);
+		setOverlayClosed(false);
 		syncPosition();
+	};
+
+	// Hand the finished game to the analysis view (local games aren't in the DB).
+	const reviewGame = () => {
+		const label =
+			mode === 'computer'
+				? `You (${playerColor}) vs ${getEngineLevel(level).label} computer`
+				: 'Local game';
+		sessionStorage.setItem('chess-analyze-pgn', game.pgn());
+		sessionStorage.setItem('chess-analyze-label', label);
+		router.push('/analyze/local');
 	};
 
 	const undo = () => {
@@ -207,7 +223,18 @@ export function GameBoard({ mode, level = 'medium', playerColor = 'white' }: Gam
 			? `You are ${playerColor} vs ${getEngineLevel(level).label} computer`
 			: 'Local two-player — pass the device between moves';
 
+	const myOutcome: Outcome = !status.isOver
+		? 'spectator'
+		: status.winner === 'draw'
+			? 'draw'
+			: mode === 'local'
+				? 'spectator'
+				: status.winner === playerColor
+					? 'win'
+					: 'loss';
+
 	return (
+		<>
 		<div className="game-layout">
 			<div className="board-column">
 				<div className="board-wrap">
@@ -243,5 +270,20 @@ export function GameBoard({ mode, level = 'medium', playerColor = 'white' }: Gam
 				</div>
 			</aside>
 		</div>
+
+		{status.isOver && !overlayClosed && (
+			<GameOverOverlay
+				outcome={myOutcome}
+				reason={status.reason ?? 'game over'}
+				headline={mode === 'local' ? status.text : undefined}
+				onClose={() => setOverlayClosed(true)}
+				actions={[
+					{ label: '↺ New game', onClick: newGame, primary: true },
+					{ label: '🔍 Review game', onClick: reviewGame },
+					{ label: '🏠 Home', onClick: () => router.push('/') },
+				]}
+			/>
+		)}
+		</>
 	);
 }

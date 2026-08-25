@@ -52,6 +52,22 @@ export function AnalysisBoard({ gameID }: { gameID: string }) {
 		let cancelled = false;
 		(async () => {
 			try {
+				// Local / vs-computer games are not saved to the DB — the board
+				// hands the finished PGN over via sessionStorage.
+				if (gameID === 'local') {
+					const pgn = sessionStorage.getItem('chess-analyze-pgn') ?? '';
+					const label = sessionStorage.getItem('chess-analyze-label') ?? 'Your game';
+					const chess = new Chess();
+					chess.loadPgn(pgn);
+					if (cancelled) {
+						return;
+					}
+					const history = chess.history();
+					setSans(history);
+					setPly(history.length);
+					setPlayers(label);
+					return;
+				}
 				const row = await getGame(gameID);
 				if (!row) {
 					throw new Error('Game not found');

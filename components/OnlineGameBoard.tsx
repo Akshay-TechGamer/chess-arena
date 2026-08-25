@@ -30,6 +30,7 @@ import { getGameStatus, type PlayerColor } from '@/lib/game/status';
 import { UNLIMITED_TIME, formatClock, liveClocks, type ClockSnapshot } from '@/lib/game/clock';
 import { MoveList } from '@/components/MoveList';
 import { PromotionDialog } from '@/components/PromotionDialog';
+import { GameOverOverlay, type Outcome } from '@/components/GameOverOverlay';
 
 interface StoredClocks extends ClockSnapshot {
 	/** Wall-clock ms when this snapshot was taken (last move / activation). */
@@ -69,6 +70,7 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 	const [chatInput, setChatInput] = useState('');
 	const [incomingRematch, setIncomingRematch] = useState(false);
 	const [rematchSent, setRematchSent] = useState(false);
+	const [overlayClosed, setOverlayClosed] = useState(false);
 
 	const gameRowRef = useRef<GameRow | null>(null);
 	gameRowRef.current = gameRow;
@@ -406,6 +408,20 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 	const opponentOnline = presenceCount >= 2;
 	const finished = gameRow.status === 'finished';
 
+	// Outcome from my seat's perspective (for the end-of-game overlay).
+	const myOutcome: Outcome =
+		myColor === null
+			? 'spectator'
+			: gameRow.result === 'draw'
+				? 'draw'
+				: gameRow.result === 'white_win'
+					? myColor === 'white'
+						? 'win'
+						: 'loss'
+					: myColor === 'black'
+						? 'win'
+						: 'loss';
+
 	const statusText = finished
 		? `${RESULT_TEXT[gameRow.result ?? ''] ?? 'Game over'} — ${(gameRow.result_reason ?? '').replace(/_/g, ' ')}`
 		: busy
@@ -489,6 +505,7 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 	};
 
 	return (
+		<>
 		<div className="game-layout">
 			<div className="board-column">
 				{clockChip(topColor)}
@@ -581,5 +598,31 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 				)}
 			</aside>
 		</div>
+
+		{finished && !overlayClosed && (
+			<GameOverOverlay
+				outcome={myOutcome}
+				reason={gameRow.result_reason ?? 'game over'}
+				headline={myColor === null ? statusText : undefined}
+				onClose={() => setOverlayClosed(true)}
+				actions={[
+					...(myColor !== null
+						? [
+								incomingRematch
+									? { label: '✓ Accept rematch', onClick: acceptRematch, primary: true }
+									: {
+											label: rematchSent ? 'Rematch offered…' : '↺ Play again',
+											onClick: offerRematch,
+											primary: true,
+											disabled: rematchSent,
+										},
+							]
+						: []),
+					{ label: '🔍 Review game', onClick: () => router.push(`/analyze/${gameID}`) },
+					{ label: '🏠 Home', onClick: () => router.push('/') },
+				]}
+			/>
+		)}
+		</>
 	);
 }
