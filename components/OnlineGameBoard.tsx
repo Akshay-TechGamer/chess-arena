@@ -640,7 +640,10 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 						</button>
 					</div>
 				)}
-				<MoveList moves={game.history()} />
+				<section className="mh-panel">
+					<h3 className="mh-title">Move History</h3>
+					<MoveList moves={game.history()} />
+				</section>
 				{gameRow.status === 'active' && myColor !== null && (
 					<>
 						{gameRow.draw_offered_by && gameRow.draw_offered_by !== myID ? (
@@ -674,16 +677,31 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 				)}
 				{myColor !== null && (
 					<div className="chat-box">
+						<div className="chat-head">
+							<h3 className="chat-title">Live Chat</h3>
+							<span className="chat-live-dot" aria-hidden="true" />
+						</div>
 						<div className="chat-messages">
-							{chatMessages.length === 0 && <p className="chat-empty">Say hi 👋</p>}
-							{chatMessages.map((message, index) => (
-								<p key={index} className="chat-line">
-									<span className={message.from === myID ? 'chat-me' : 'chat-them'}>
-										{message.username}:
-									</span>{' '}
-									{message.text}
-								</p>
-							))}
+							<div className="chat-msg chat-msg-system">
+								<span className="chat-author">System</span>
+								<div className="chat-bubble chat-bubble-system">
+									Match started. Good luck to both players!
+								</div>
+							</div>
+							{chatMessages.map((message, index) => {
+								const mine = message.from === myID;
+								return (
+									<div
+										key={index}
+										className={`chat-msg ${mine ? 'chat-msg-me' : 'chat-msg-them'}`}
+									>
+										<span className="chat-author">{mine ? 'You' : message.username}</span>
+										<div className={`chat-bubble ${mine ? 'chat-bubble-me' : 'chat-bubble-them'}`}>
+											{message.text}
+										</div>
+									</div>
+								);
+							})}
 						</div>
 						<div className="chat-input-row">
 							<input
@@ -695,11 +713,29 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 										sendChat();
 									}
 								}}
-								placeholder="Message…"
+								placeholder="Type a message…"
 								maxLength={200}
 							/>
-							<button type="button" className="btn btn-small" onClick={sendChat}>
-								Send
+							<button
+								type="button"
+								className="chat-send"
+								onClick={sendChat}
+								aria-label="Send message"
+							>
+								<svg
+									width="18"
+									height="18"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="2"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									aria-hidden="true"
+								>
+									<path d="M22 2 11 13" />
+									<path d="M22 2 15 22l-4-9-9-4 20-7Z" />
+								</svg>
 							</button>
 						</div>
 					</div>
