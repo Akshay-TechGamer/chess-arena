@@ -36,6 +36,7 @@ export function GameBoard({ mode, level = 'medium', playerColor = 'white' }: Gam
 	const [thinking, setThinking] = useState(false);
 	const [engineError, setEngineError] = useState<string | null>(null);
 	const [overlayClosed, setOverlayClosed] = useState(false);
+	const [flipped, setFlipped] = useState(false);
 	const engineRef = useRef<StockfishEngine | null>(null);
 	const router = useRouter();
 
@@ -206,12 +207,19 @@ export function GameBoard({ mode, level = 'medium', playerColor = 'white' }: Gam
 		};
 	}
 
+	const baseOrientation: PlayerColor = mode === 'computer' ? playerColor : 'white';
+	const orientation: PlayerColor = flipped
+		? baseOrientation === 'white'
+			? 'black'
+			: 'white'
+		: baseOrientation;
+
 	const boardOptions = {
 		id: 'chess-arena-board',
 			lightSquareStyle: LIGHT_SQUARE_STYLE,
 			darkSquareStyle: DARK_SQUARE_STYLE,
 		position: fen,
-		boardOrientation: mode === 'computer' ? playerColor : 'white' as const,
+		boardOrientation: orientation,
 		animationDurationInMs: 200,
 		allowDragging: isPlayersTurn,
 		squareStyles,
@@ -278,17 +286,37 @@ export function GameBoard({ mode, level = 'medium', playerColor = 'white' }: Gam
 					{engineError ?? (thinking ? 'Computer is thinking…' : status.text)}
 				</div>
 				<MoveList moves={history} />
-				<div className="button-row">
-					<button type="button" className="btn" onClick={newGame}>
-						New game
-					</button>
+				<div className="game-controls">
 					<button
 						type="button"
-						className="btn"
+						className="gc-btn"
 						onClick={undo}
 						disabled={history.length === 0 || thinking}
 					>
-						Undo
+						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+							<path d="M3 7v6h6" />
+							<path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+						</svg>
+						<span>Undo</span>
+					</button>
+					<button type="button" className="gc-btn gc-primary" onClick={newGame}>
+						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+							<path d="M21 12a9 9 0 1 1-3-6.7L21 8" />
+							<path d="M21 3v5h-5" />
+						</svg>
+						<span>Restart</span>
+					</button>
+					<button
+						type="button"
+						className="gc-btn"
+						onClick={() => setFlipped((value) => !value)}
+					>
+						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+							<path d="M12 3v18" />
+							<path d="m8 7 4-4 4 4" />
+							<path d="m8 17 4 4 4-4" />
+						</svg>
+						<span>Flip Board</span>
 					</button>
 				</div>
 			</aside>

@@ -1479,6 +1479,60 @@ button {
 	color: var(--negative);
 }
 
+/* Local / vs-computer game controls: Undo · Restart · Flip Board */
+.game-controls {
+	display: flex;
+	gap: 10px;
+}
+
+.gc-btn {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+	padding: 12px 6px;
+	background: var(--card);
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	color: var(--text);
+	font-size: 0.72rem;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	cursor: pointer;
+	transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.gc-btn svg {
+	color: var(--accent);
+}
+
+.gc-btn:hover {
+	border-color: var(--accent);
+	background: var(--card-hover);
+}
+
+.gc-btn:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+
+.gc-primary {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: var(--on-accent);
+	box-shadow: 0 0 16px rgba(0, 240, 255, 0.25);
+}
+
+.gc-primary svg {
+	color: var(--on-accent);
+}
+
+.gc-primary:hover {
+	background: var(--accent-strong);
+	border-color: var(--accent-strong);
+}
+
 .draw-offer {
 	background: rgba(0, 240, 255, 0.08);
 	border: 1px solid rgba(0, 240, 255, 0.25);
@@ -1967,6 +2021,13 @@ button {
 
 	.turn-toast {
 		top: 62px;
+	}
+
+	/* Move history drops to the bottom of the stacked sidebar on mobile */
+	.mh-panel,
+	.sidebar > .move-list,
+	.sidebar > .move-list-empty {
+		order: 5;
 	}
 
 	.site-logo {
