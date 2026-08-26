@@ -658,6 +658,22 @@ button {
 	color: var(--muted);
 }
 
+.lb-pager {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 16px;
+	margin-top: 20px;
+}
+
+.lb-page-info {
+	font-family: var(--font-mono);
+	color: var(--muted);
+	font-size: 0.85rem;
+	min-width: 120px;
+	text-align: center;
+}
+
 @media (max-width: 600px) {
 	.lb-head,
 	.lb-row {
