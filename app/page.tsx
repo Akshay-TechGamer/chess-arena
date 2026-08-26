@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { AdSlot } from '@/components/AdSlot';
 
 export default function Home() {
 	return (
@@ -26,6 +27,10 @@ export default function Home() {
 					<span className="mode-desc">One tactic a day, from Lichess</span>
 				</Link>
 			</div>
+			<AdSlot slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_HOME} className="ad-home" />
+			<Link href="/privacy" className="home-privacy">
+				Privacy Policy
+			</Link>
 		</div>
 	);
 }

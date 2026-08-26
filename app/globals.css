@@ -1208,6 +1208,81 @@ button {
 	gap: 16px;
 }
 
+/* ---------- Ads ---------- */
+
+.ad-wrap {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	width: 100%;
+	max-width: 728px;
+	margin: 22px auto 0;
+	overflow: hidden;
+}
+
+.ad-label {
+	font-size: 0.62rem;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--muted);
+	opacity: 0.7;
+}
+
+.ad-wrap .adsbygoogle {
+	width: 100%;
+	min-height: 90px;
+}
+
+.home-privacy {
+	display: block;
+	text-align: center;
+	margin-top: 24px;
+	color: var(--muted);
+	font-size: 0.82rem;
+}
+
+.home-privacy:hover {
+	color: var(--text);
+}
+
+/* ---------- Simple document pages (privacy, etc.) ---------- */
+
+.doc-page {
+	max-width: 760px;
+	margin: 0 auto;
+	line-height: 1.6;
+}
+
+.doc-title {
+	font-size: 2rem;
+	margin: 8px 0 4px;
+}
+
+.doc-updated {
+	color: var(--muted);
+	font-size: 0.85rem;
+	margin-bottom: 20px;
+}
+
+.doc-page h2 {
+	margin: 26px 0 8px;
+	font-size: 1.2rem;
+	color: var(--accent-strong);
+}
+
+.doc-page ul {
+	padding-left: 20px;
+}
+
+.doc-page li {
+	margin: 6px 0;
+}
+
+.doc-page a {
+	color: var(--accent);
+}
+
 .mode-card {
 	display: flex;
 	flex-direction: column;
