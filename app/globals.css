@@ -1,19 +1,23 @@
 :root {
-	/* "Grandmaster Prime" — deep navy + gold */
+	/* "Cyber Rank" — deep navy + electric cyan */
 	--bg: #051424;
 	--bg-raised: #0d1c2d;
 	--card: #122131;
 	--card-hover: #1c2b3c;
 	--border: #273647;
 	--text: #d4e4fa;
-	--muted: #8b93a3;
-	--accent: #e9c349;
-	--accent-strong: #ffe088;
-	--on-accent: #3c2f00;
+	--muted: #849495;
+	--accent: #00f0ff;
+	--accent-strong: #7df4ff;
+	--on-accent: #00363a;
+	--violet: #b58cff;
 	/* semantic */
-	--positive: #6fc27a;
+	--positive: #34e5b0;
 	--negative: #ff8f8a;
-	--shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+	--shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+	--glow: 0 0 18px rgba(0, 240, 255, 0.25);
+	--font-body: 'Inter', system-ui, -apple-system, sans-serif;
+	--font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
 * {
@@ -26,8 +30,35 @@ body {
 	padding: 0;
 	background: var(--bg);
 	color: var(--text);
-	font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+	font-family: var(--font-body);
 	line-height: 1.5;
+}
+
+/* Monospace for tabular data, ranks, clocks, codes, labels */
+.site-logo,
+.invite-code,
+.clock-time,
+.player-clock,
+.stepper-count,
+.move-list,
+.rank-num,
+.player-sub,
+.code-input,
+.field-label,
+.setup-label,
+.field-label {
+	font-family: var(--font-mono);
+}
+
+h1,
+h2,
+.home-title,
+.room-title,
+.setup-title,
+.panel-title,
+.over-title {
+	font-family: var(--font-body);
+	letter-spacing: -0.01em;
 }
 
 a {
