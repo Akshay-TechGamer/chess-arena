@@ -297,7 +297,9 @@ export function GameBoard({ mode, level = 'medium', playerColor = 'white' }: Gam
 		}
 		return `${side === 'w' ? 'White' : 'Black'} to move`;
 	};
-	const showBanner = !isMobile || status.isOver || thinking || engineError !== null;
+	// On mobile the bot's own card shows "Thinking…", so the banner stays hidden
+	// during engine turns (it still appears for game-over and error messages).
+	const showBanner = !isMobile || status.isOver || engineError !== null;
 
 	return (
 		<>
