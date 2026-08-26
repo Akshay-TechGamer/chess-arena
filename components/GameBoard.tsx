@@ -16,6 +16,7 @@ import { MoveList } from '@/components/MoveList';
 import { PromotionDialog } from '@/components/PromotionDialog';
 import { PlayerCard } from '@/components/PlayerCard';
 import { GameOverOverlay, type Outcome } from '@/components/GameOverOverlay';
+import { BottomSheet } from '@/components/BottomSheet';
 
 export interface GameBoardProps {
 	mode: 'local' | 'computer';
@@ -37,8 +38,20 @@ export function GameBoard({ mode, level = 'medium', playerColor = 'white' }: Gam
 	const [engineError, setEngineError] = useState<string | null>(null);
 	const [overlayClosed, setOverlayClosed] = useState(false);
 	const [flipped, setFlipped] = useState(false);
+	const [isMobile, setIsMobile] = useState(false);
+	const [movesOpen, setMovesOpen] = useState(false);
 	const engineRef = useRef<StockfishEngine | null>(null);
 	const router = useRouter();
+
+	// On mobile, move history moves into a bottom sheet so the board fits without
+	// a page scrollbar.
+	useEffect(() => {
+		const query = window.matchMedia('(max-width: 760px)');
+		const update = () => setIsMobile(query.matches);
+		update();
+		query.addEventListener('change', update);
+		return () => query.removeEventListener('change', update);
+	}, []);
 
 	const status = getGameStatus(game);
 	const history = game.history();
@@ -262,6 +275,13 @@ export function GameBoard({ mode, level = 'medium', playerColor = 'white' }: Gam
 					? 'win'
 					: 'loss';
 
+	const movesPanel = (
+		<section className="mh-panel">
+			<h3 className="mh-title">Move History</h3>
+			<MoveList moves={history} />
+		</section>
+	);
+
 	return (
 		<>
 		<div className="game-layout">
@@ -285,7 +305,7 @@ export function GameBoard({ mode, level = 'medium', playerColor = 'white' }: Gam
 				<div className={`status-banner${status.isOver ? ' status-over' : ''}`}>
 					{engineError ?? (thinking ? 'Computer is thinking…' : status.text)}
 				</div>
-				<MoveList moves={history} />
+				{!isMobile && movesPanel}
 				<div className="game-controls">
 					<button
 						type="button"
@@ -318,9 +338,31 @@ export function GameBoard({ mode, level = 'medium', playerColor = 'white' }: Gam
 						</svg>
 						<span>Flip Board</span>
 					</button>
+					{isMobile && (
+						<button
+							type="button"
+							className="gc-btn"
+							onClick={() => setMovesOpen(true)}
+							aria-label="Move history"
+						>
+							<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+								<line x1="8" y1="6" x2="21" y2="6" />
+								<line x1="8" y1="12" x2="21" y2="12" />
+								<line x1="8" y1="18" x2="21" y2="18" />
+								<line x1="3" y1="6" x2="3.01" y2="6" />
+								<line x1="3" y1="12" x2="3.01" y2="12" />
+								<line x1="3" y1="18" x2="3.01" y2="18" />
+							</svg>
+							<span>Moves</span>
+						</button>
+					)}
 				</div>
 			</aside>
 		</div>
+
+		{isMobile && movesOpen && (
+			<BottomSheet onClose={() => setMovesOpen(false)}>{movesPanel}</BottomSheet>
+		)}
 
 		{status.isOver && !overlayClosed && (
 			<GameOverOverlay

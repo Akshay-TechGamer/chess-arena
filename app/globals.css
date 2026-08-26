@@ -1533,6 +1533,117 @@ button {
 	border-color: var(--accent-strong);
 }
 
+/* ---------- Bottom sheet (mobile chat / move history) ---------- */
+
+.sheet-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 90;
+	background: rgba(0, 0, 0, 0.6);
+	display: flex;
+	align-items: flex-end;
+	animation: sheet-fade 0.2s ease;
+}
+
+.sheet {
+	width: 100%;
+	max-height: 85vh;
+	display: flex;
+	flex-direction: column;
+	background: var(--bg-raised);
+	border-top: 1px solid rgba(0, 240, 255, 0.28);
+	border-radius: 18px 18px 0 0;
+	box-shadow: 0 -12px 44px rgba(0, 0, 0, 0.5);
+	animation: sheet-up 0.25s ease;
+	overflow: hidden;
+}
+
+.sheet-grip {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 10px 0 6px;
+	flex-shrink: 0;
+}
+
+.sheet-handle {
+	width: 42px;
+	height: 4px;
+	border-radius: 999px;
+	background: var(--border);
+}
+
+.sheet-close {
+	position: absolute;
+	right: 10px;
+	top: 4px;
+	background: none;
+	border: none;
+	color: var(--muted);
+	font-size: 1.1rem;
+	line-height: 1;
+	padding: 6px 10px;
+	cursor: pointer;
+}
+
+.sheet-close:hover {
+	color: var(--text);
+}
+
+.sheet-body {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	padding: 0 12px 14px;
+	overflow: hidden;
+}
+
+/* Panels fill the sheet and scroll internally — the page never scrolls */
+.sheet-body .mh-panel {
+	flex: 1;
+	min-height: 0;
+	height: auto;
+	padding: 0;
+	border: none;
+}
+
+.sheet-body .mh-panel .move-list {
+	max-height: none;
+}
+
+.sheet-body .chat-box {
+	flex: 1;
+	min-height: 0;
+	border: none;
+	box-shadow: none;
+}
+
+.sheet-body .chat-messages {
+	flex: 1;
+	min-height: 0;
+	max-height: none;
+}
+
+@keyframes sheet-up {
+	from {
+		transform: translateY(100%);
+	}
+	to {
+		transform: translateY(0);
+	}
+}
+
+@keyframes sheet-fade {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
 .draw-offer {
 	background: rgba(0, 240, 255, 0.08);
 	border: 1px solid rgba(0, 240, 255, 0.25);
@@ -2023,13 +2134,6 @@ button {
 		top: 62px;
 	}
 
-	/* Move history drops to the bottom of the stacked sidebar on mobile */
-	.mh-panel,
-	.sidebar > .move-list,
-	.sidebar > .move-list-empty {
-		order: 5;
-	}
-
 	.site-logo {
 		font-size: 1.05rem;
 	}
@@ -2037,7 +2141,27 @@ button {
 
 @media (max-width: 640px) {
 	.container {
-		padding: 16px 8px 40px;
+		padding: 16px 8px 24px;
+	}
+
+	/* Home menu keeps two compact columns instead of one tall stack */
+	.menu-grid {
+		grid-template-columns: 1fr 1fr;
+		gap: 12px;
+	}
+
+	.mode-card {
+		padding: 16px 12px;
+		gap: 5px;
+	}
+
+	.mode-icon {
+		font-size: 1.6rem;
+	}
+
+	.home-title {
+		margin: 10px 0 16px;
+		font-size: 1.7rem;
 	}
 
 	/* Board and sidebar stack vertically, each full width */
@@ -2124,5 +2248,21 @@ button {
 		flex: 1 1 auto;
 		min-height: 0;
 		max-height: none;
+	}
+}
+
+/* Mobile / small tablets: the board shrinks with the viewport height so the
+   whole game (board + cards + status + control bar) fits with no page scroll.
+   Chat and move history live in bottom sheets, so they add no height here. */
+@media (max-width: 899px) {
+	.board-column {
+		max-width: min(100%, calc(100vh - 430px));
+		margin-left: auto;
+		margin-right: auto;
+	}
+
+	/* Player names already show on the cards — drop the redundant subtitle line */
+	.game-subtitle {
+		display: none;
 	}
 }

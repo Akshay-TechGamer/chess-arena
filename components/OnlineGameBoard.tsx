@@ -43,6 +43,7 @@ import { MoveList } from '@/components/MoveList';
 import { PromotionDialog } from '@/components/PromotionDialog';
 import { PlayerCard } from '@/components/PlayerCard';
 import { GameOverOverlay, type Outcome } from '@/components/GameOverOverlay';
+import { BottomSheet } from '@/components/BottomSheet';
 
 interface StoredClocks extends ClockSnapshot {
 	/** Wall-clock ms when this snapshot was taken (last move / activation). */
@@ -87,7 +88,8 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 	const ratingBeforeRef = useRef<number | null>(null);
 	const [turnToast, setTurnToast] = useState<{ side: string; id: number } | null>(null);
 	const toastTimerRef = useRef<number | null>(null);
-	const chatBoxRef = useRef<HTMLDivElement>(null);
+	const [isMobile, setIsMobile] = useState(false);
+	const [sheet, setSheet] = useState<'chat' | 'moves' | null>(null);
 
 	const gameRowRef = useRef<GameRow | null>(null);
 	gameRowRef.current = gameRow;
@@ -377,8 +379,14 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [fen, gameRow?.status]);
 
-	const scrollToChat = useCallback(() => {
-		chatBoxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+	// Track the mobile breakpoint so chat / move history become bottom sheets
+	// there (keeping the game screen scroll-free) but stay inline on desktop.
+	useEffect(() => {
+		const query = window.matchMedia('(max-width: 760px)');
+		const update = () => setIsMobile(query.matches);
+		update();
+		query.addEventListener('change', update);
+		return () => query.removeEventListener('change', update);
 	}, []);
 
 	const isPromotionMove = useCallback(
@@ -598,6 +606,93 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 		);
 	};
 
+	const movesPanel = (
+		<section className="mh-panel">
+			<h3 className="mh-title">Move History</h3>
+			<MoveList moves={game.history()} />
+		</section>
+	);
+
+	const chatPanel = (
+		<div className="chat-box">
+			<div className="chat-head">
+				<h3 className="chat-title">Live Chat</h3>
+				<span className="chat-live-dot" aria-hidden="true" />
+			</div>
+			<div className="chat-messages">
+				<div className="chat-msg chat-msg-system">
+					<span className="chat-author">System</span>
+					<div className="chat-bubble chat-bubble-system">
+						Match started. Good luck to both players!
+					</div>
+				</div>
+				{chatMessages.map((message, index) => {
+					const mine = message.from === myID;
+					return (
+						<div key={index} className={`chat-msg ${mine ? 'chat-msg-me' : 'chat-msg-them'}`}>
+							<span className="chat-author">{mine ? 'You' : message.username}</span>
+							<div className={`chat-bubble ${mine ? 'chat-bubble-me' : 'chat-bubble-them'}`}>
+								{message.text}
+							</div>
+						</div>
+					);
+				})}
+			</div>
+			<div className="chat-input-row">
+				<input
+					className="chat-input"
+					value={chatInput}
+					onChange={(event) => setChatInput(event.target.value)}
+					onKeyDown={(event) => {
+						if (event.key === 'Enter') {
+							sendChat();
+						}
+					}}
+					placeholder="Type a message…"
+					maxLength={200}
+				/>
+				<button type="button" className="chat-send" onClick={sendChat} aria-label="Send message">
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+						<path d="M22 2 11 13" />
+						<path d="M22 2 15 22l-4-9-9-4 20-7Z" />
+					</svg>
+				</button>
+			</div>
+		</div>
+	);
+
+	const mobileSheetButtons = (
+		<>
+			<button
+				type="button"
+				className="mc-btn"
+				onClick={() => setSheet('moves')}
+				aria-label="Move history"
+			>
+				<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+					<line x1="8" y1="6" x2="21" y2="6" />
+					<line x1="8" y1="12" x2="21" y2="12" />
+					<line x1="8" y1="18" x2="21" y2="18" />
+					<line x1="3" y1="6" x2="3.01" y2="6" />
+					<line x1="3" y1="12" x2="3.01" y2="12" />
+					<line x1="3" y1="18" x2="3.01" y2="18" />
+				</svg>
+				<span>Moves</span>
+			</button>
+			<button
+				type="button"
+				className="mc-btn"
+				onClick={() => setSheet('chat')}
+				aria-label="Open chat"
+			>
+				<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+					<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" />
+				</svg>
+				<span>Chat</span>
+			</button>
+		</>
+	);
+
 	return (
 		<>
 		{turnToast && !finished && (
@@ -676,10 +771,10 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 						</button>
 					</div>
 				)}
-				<section className="mh-panel">
-					<h3 className="mh-title">Move History</h3>
-					<MoveList moves={game.history()} />
-				</section>
+				{finished && myColor !== null && (
+					<div className="mobile-controls">{mobileSheetButtons}</div>
+				)}
+				{!isMobile && movesPanel}
 				{gameRow.status === 'active' && myColor !== null && (
 					<>
 						{gameRow.draw_offered_by && gameRow.draw_offered_by !== myID ? (
@@ -738,89 +833,22 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 										</svg>
 										<span>{gameRow.draw_offered_by === myID ? 'Offered' : 'Draw'}</span>
 									</button>
-									<button
-										type="button"
-										className="mc-btn"
-										onClick={scrollToChat}
-										aria-label="Go to chat"
-									>
-										<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-											<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" />
-										</svg>
-										<span>Chat</span>
-									</button>
+									{mobileSheetButtons}
 								</div>
 							</>
 						)}
 					</>
 				)}
-				{myColor !== null && (
-					<div className="chat-box" ref={chatBoxRef}>
-						<div className="chat-head">
-							<h3 className="chat-title">Live Chat</h3>
-							<span className="chat-live-dot" aria-hidden="true" />
-						</div>
-						<div className="chat-messages">
-							<div className="chat-msg chat-msg-system">
-								<span className="chat-author">System</span>
-								<div className="chat-bubble chat-bubble-system">
-									Match started. Good luck to both players!
-								</div>
-							</div>
-							{chatMessages.map((message, index) => {
-								const mine = message.from === myID;
-								return (
-									<div
-										key={index}
-										className={`chat-msg ${mine ? 'chat-msg-me' : 'chat-msg-them'}`}
-									>
-										<span className="chat-author">{mine ? 'You' : message.username}</span>
-										<div className={`chat-bubble ${mine ? 'chat-bubble-me' : 'chat-bubble-them'}`}>
-											{message.text}
-										</div>
-									</div>
-								);
-							})}
-						</div>
-						<div className="chat-input-row">
-							<input
-								className="chat-input"
-								value={chatInput}
-								onChange={(event) => setChatInput(event.target.value)}
-								onKeyDown={(event) => {
-									if (event.key === 'Enter') {
-										sendChat();
-									}
-								}}
-								placeholder="Type a message…"
-								maxLength={200}
-							/>
-							<button
-								type="button"
-								className="chat-send"
-								onClick={sendChat}
-								aria-label="Send message"
-							>
-								<svg
-									width="18"
-									height="18"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="2"
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									aria-hidden="true"
-								>
-									<path d="M22 2 11 13" />
-									<path d="M22 2 15 22l-4-9-9-4 20-7Z" />
-								</svg>
-							</button>
-						</div>
-					</div>
-				)}
+				{!isMobile && myColor !== null && chatPanel}
 			</aside>
 		</div>
+
+		{isMobile && sheet === 'moves' && (
+			<BottomSheet onClose={() => setSheet(null)}>{movesPanel}</BottomSheet>
+		)}
+		{isMobile && sheet === 'chat' && myColor !== null && (
+			<BottomSheet onClose={() => setSheet(null)}>{chatPanel}</BottomSheet>
+		)}
 
 		{finished && !overlayClosed && (
 			<GameOverOverlay
