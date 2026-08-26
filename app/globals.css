@@ -270,14 +270,29 @@ button {
 }
 
 .drawer-link {
+	display: flex;
+	align-items: center;
+	gap: 12px;
 	padding: 12px 10px;
 	border-radius: 8px;
 	color: var(--text);
 	font-size: 1.05rem;
 }
 
+.drawer-icon {
+	font-size: 1.3rem;
+	line-height: 1;
+	width: 26px;
+	text-align: center;
+}
+
 .drawer-link:hover {
 	background: var(--card);
+}
+
+.drawer-link-active {
+	color: var(--accent);
+	background: rgba(0, 240, 255, 0.08);
 }
 
 .drawer-auth {

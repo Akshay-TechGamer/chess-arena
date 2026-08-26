@@ -13,6 +13,14 @@ const NAV_LINKS = [
 	{ href: '/leaderboard', label: 'Leaderboard' },
 ];
 
+// Icon set shared with the desktop side rail — used in the mobile drawer.
+const DRAWER_LINKS = [
+	{ href: '/', label: 'Home', icon: '♞' },
+	{ href: '/puzzles', label: 'Puzzle', icon: '🧩' },
+	{ href: '/games', label: 'My games', icon: '📋' },
+	{ href: '/leaderboard', label: 'Leaderboard', icon: '🏆' },
+];
+
 export function SiteHeader() {
 	const [open, setOpen] = useState(false);
 	const pathname = usePathname();
@@ -74,14 +82,20 @@ export function SiteHeader() {
 							</button>
 						</div>
 						<nav className="drawer-nav">
-							<Link href="/" className="drawer-link">
-								Home
-							</Link>
-							{NAV_LINKS.map((link) => (
-								<Link key={link.href} href={link.href} className="drawer-link">
-									{link.label}
-								</Link>
-							))}
+							{DRAWER_LINKS.map((link) => {
+								const active =
+									link.href === '/' ? pathname === '/' : pathname.startsWith(link.href);
+								return (
+									<Link
+										key={link.href}
+										href={link.href}
+										className={`drawer-link${active ? ' drawer-link-active' : ''}`}
+									>
+										<span className="drawer-icon">{link.icon}</span>
+										<span>{link.label}</span>
+									</Link>
+								);
+							})}
 						</nav>
 						<div className="drawer-auth">
 							<AuthButton />
