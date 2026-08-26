@@ -3,6 +3,7 @@
 import { getSupabase } from './supabaseClient';
 
 export interface LeaderboardRow {
+	id: string;
 	username: string;
 	elo_rating: number;
 	games_played: number;
@@ -12,7 +13,7 @@ export async function topProfiles(limit: number): Promise<LeaderboardRow[]> {
 	const supabase = getSupabase();
 	const { data, error } = await supabase
 		.from('chess_profiles')
-		.select('username, elo_rating, games_played')
+		.select('id, username, elo_rating, games_played')
 		.gte('games_played', 1)
 		.order('elo_rating', { ascending: false })
 		.limit(limit);
