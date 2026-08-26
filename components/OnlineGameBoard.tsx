@@ -85,6 +85,9 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 	const [overlayClosed, setOverlayClosed] = useState(false);
 	const [eloDelta, setEloDelta] = useState<number | null>(null);
 	const ratingBeforeRef = useRef<number | null>(null);
+	const [turnToast, setTurnToast] = useState<{ side: string; id: number } | null>(null);
+	const toastTimerRef = useRef<number | null>(null);
+	const chatBoxRef = useRef<HTMLDivElement>(null);
 
 	const gameRowRef = useRef<GameRow | null>(null);
 	gameRowRef.current = gameRow;
@@ -354,6 +357,30 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 		return () => clearInterval(interval);
 	}, [timed, gameRow?.status, game, gameID, myColor]);
 
+	// Pop a live "whose turn" toast whenever the side to move changes.
+	useEffect(() => {
+		if (gameRow?.status !== 'active') {
+			setTurnToast(null);
+			return;
+		}
+		const side = game.turn() === 'w' ? 'White' : 'Black';
+		setTurnToast((prev) => ({ side, id: (prev ? prev.id : 0) + 1 }));
+		if (toastTimerRef.current) {
+			window.clearTimeout(toastTimerRef.current);
+		}
+		toastTimerRef.current = window.setTimeout(() => setTurnToast(null), 2200);
+		return () => {
+			if (toastTimerRef.current) {
+				window.clearTimeout(toastTimerRef.current);
+			}
+		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [fen, gameRow?.status]);
+
+	const scrollToChat = useCallback(() => {
+		chatBoxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+	}, []);
+
 	const isPromotionMove = useCallback(
 		(from: Square, to: Square): boolean => {
 			const candidate = game
@@ -573,6 +600,12 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 
 	return (
 		<>
+		{turnToast && !finished && (
+			<div className="turn-toast" key={turnToast.id} role="status">
+				<span className="turn-dot" aria-hidden="true" />
+				{turnToast.side}&rsquo;s turn
+			</div>
+		)}
 		<div className="game-layout">
 			<div className="board-column">
 				{playerCard(topColor)}
@@ -600,7 +633,10 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 					</p>
 				)}
 				<div className={`status-banner${finished ? ' status-over' : ''}`}>
-					<span>{banner ?? statusText}</span>
+					<span className="status-left">
+						{!finished && <span className="turn-live-dot" aria-hidden="true" />}
+						{banner ?? statusText}
+					</span>
 					{!finished && (
 						<svg
 							className="status-clock"
@@ -659,24 +695,67 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 								</div>
 							</div>
 						) : (
-							<div className="button-row">
-								<button
-									type="button"
-									className="btn"
-									onClick={onOfferDraw}
-									disabled={gameRow.draw_offered_by === myID}
-								>
-									{gameRow.draw_offered_by === myID ? 'Draw offered…' : '½ Offer draw'}
-								</button>
-								<button type="button" className="btn" onClick={resign}>
-									🏳 Resign
-								</button>
-							</div>
+							<>
+								<div className="button-row game-actions">
+									<button
+										type="button"
+										className="btn"
+										onClick={onOfferDraw}
+										disabled={gameRow.draw_offered_by === myID}
+									>
+										{gameRow.draw_offered_by === myID ? 'Draw offered…' : '½ Offer draw'}
+									</button>
+									<button type="button" className="btn" onClick={resign}>
+										🏳 Resign
+									</button>
+								</div>
+								<div className="mobile-controls">
+									<button
+										type="button"
+										className="mc-btn mc-danger"
+										onClick={resign}
+										aria-label="Resign"
+									>
+										<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+											<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1Z" />
+											<line x1="4" y1="22" x2="4" y2="15" />
+										</svg>
+										<span>Resign</span>
+									</button>
+									<button
+										type="button"
+										className="mc-btn"
+										onClick={onOfferDraw}
+										disabled={gameRow.draw_offered_by === myID}
+										aria-label="Offer draw"
+									>
+										<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+											<path d="m11 17 2 2a1 1 0 1 0 3-3" />
+											<path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4" />
+											<path d="m21 3 1 11h-2" />
+											<path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3" />
+											<path d="M3 4h8" />
+										</svg>
+										<span>{gameRow.draw_offered_by === myID ? 'Offered' : 'Draw'}</span>
+									</button>
+									<button
+										type="button"
+										className="mc-btn"
+										onClick={scrollToChat}
+										aria-label="Go to chat"
+									>
+										<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+											<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" />
+										</svg>
+										<span>Chat</span>
+									</button>
+								</div>
+							</>
 						)}
 					</>
 				)}
 				{myColor !== null && (
-					<div className="chat-box">
+					<div className="chat-box" ref={chatBoxRef}>
 						<div className="chat-head">
 							<h3 className="chat-title">Live Chat</h3>
 							<span className="chat-live-dot" aria-hidden="true" />

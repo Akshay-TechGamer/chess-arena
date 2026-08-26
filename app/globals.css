@@ -1362,6 +1362,123 @@ button {
 	color: var(--accent);
 }
 
+.status-left {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+}
+
+/* Always-on pulsing "live" dot next to the turn text */
+.turn-live-dot {
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	background: var(--accent);
+	box-shadow: 0 0 8px var(--accent);
+	flex-shrink: 0;
+	animation: chat-pulse 1.6s ease-in-out infinite;
+}
+
+/* Transient "whose turn" toast pill (mobile + web) */
+.turn-toast {
+	position: fixed;
+	top: 74px;
+	left: 50%;
+	z-index: 80;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 9px 20px;
+	background: rgba(5, 20, 36, 0.92);
+	border: 1px solid rgba(0, 240, 255, 0.45);
+	border-radius: 999px;
+	color: var(--accent-strong);
+	font-weight: 700;
+	font-size: 0.82rem;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	white-space: nowrap;
+	box-shadow: 0 8px 30px rgba(0, 240, 255, 0.18), inset 0 0 12px rgba(0, 240, 255, 0.08);
+	backdrop-filter: blur(6px);
+	pointer-events: none;
+	animation: turn-toast 2.2s ease forwards;
+}
+
+.turn-dot {
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	background: var(--accent);
+	box-shadow: 0 0 8px var(--accent);
+	animation: chat-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes turn-toast {
+	0% {
+		opacity: 0;
+		transform: translate(-50%, -10px);
+	}
+	12% {
+		opacity: 1;
+		transform: translate(-50%, 0);
+	}
+	82% {
+		opacity: 1;
+		transform: translate(-50%, 0);
+	}
+	100% {
+		opacity: 0;
+		transform: translate(-50%, -10px);
+	}
+}
+
+/* Mobile icon control bar (Resign / Draw / Chat) — hidden on desktop */
+.mobile-controls {
+	display: none;
+	gap: 10px;
+}
+
+.mc-btn {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+	padding: 12px 6px;
+	background: var(--card);
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	color: var(--text);
+	font-size: 0.7rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	cursor: pointer;
+	transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.mc-btn svg {
+	color: var(--accent);
+}
+
+.mc-btn:hover {
+	border-color: var(--accent);
+	background: var(--card-hover);
+}
+
+.mc-btn:disabled {
+	opacity: 0.55;
+	cursor: default;
+}
+
+.mc-danger:hover {
+	border-color: var(--negative);
+}
+
+.mc-danger:hover svg {
+	color: var(--negative);
+}
+
 .draw-offer {
 	background: rgba(0, 240, 255, 0.08);
 	border: 1px solid rgba(0, 240, 255, 0.25);
@@ -1837,6 +1954,19 @@ button {
 	.site-header {
 		padding: 8px 14px;
 		gap: 8px;
+	}
+
+	/* Swap the text action row for the icon control bar */
+	.game-actions {
+		display: none;
+	}
+
+	.mobile-controls {
+		display: flex;
+	}
+
+	.turn-toast {
+		top: 62px;
 	}
 
 	.site-logo {
