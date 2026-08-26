@@ -1903,3 +1903,35 @@ button {
 		display: none;
 	}
 }
+
+/* Desktop: keep the whole game on one screen — no page scrollbar. The board
+   shrinks with the viewport height, and the sidebar's chat scrolls internally
+   instead of pushing the page taller. */
+@media (min-width: 900px) {
+	.game-layout {
+		flex-wrap: nowrap;
+		align-items: flex-start;
+	}
+
+	.board-column {
+		max-width: min(560px, calc(100vh - 320px));
+	}
+
+	.sidebar {
+		align-self: stretch;
+		min-height: 0;
+		max-height: calc(100vh - 180px);
+		overflow: hidden;
+	}
+
+	.chat-box {
+		flex: 1 1 auto;
+		min-height: 140px;
+	}
+
+	.chat-messages {
+		flex: 1 1 auto;
+		min-height: 0;
+		max-height: none;
+	}
+}
