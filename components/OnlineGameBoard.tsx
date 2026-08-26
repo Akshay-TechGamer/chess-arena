@@ -18,11 +18,14 @@ import {
 	type PlayerInfo,
 } from '@/lib/data/authRepo';
 import {
+	acceptDraw,
 	claimTimeout,
+	clearDraw,
 	createRematchGame,
 	getGame,
 	joinGame,
 	listMoves,
+	offerDraw,
 	playMove,
 	resignGame,
 	type GameRow,
@@ -385,6 +388,16 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 		resignGame(gameID).catch(() => setBanner('Could not resign — try again.'));
 	}, [myColor, gameRow, gameID]);
 
+	const onOfferDraw = useCallback(() => {
+		offerDraw(gameID).catch(() => setBanner('Could not offer a draw.'));
+	}, [gameID]);
+	const onAcceptDraw = useCallback(() => {
+		acceptDraw(gameID).catch(() => setBanner('Could not accept the draw.'));
+	}, [gameID]);
+	const onDeclineDraw = useCallback(() => {
+		clearDraw(gameID).catch(() => undefined);
+	}, [gameID]);
+
 	const copyInviteLink = useCallback(() => {
 		const link = `${window.location.origin}/game/${gameID}`;
 		navigator.clipboard.writeText(link).then(() => {
@@ -612,11 +625,35 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 				)}
 				<MoveList moves={game.history()} />
 				{gameRow.status === 'active' && myColor !== null && (
-					<div className="button-row">
-						<button type="button" className="btn" onClick={resign}>
-							Resign
-						</button>
-					</div>
+					<>
+						{gameRow.draw_offered_by && gameRow.draw_offered_by !== myID ? (
+							<div className="draw-offer">
+								<span>Opponent offers a draw</span>
+								<div className="button-row">
+									<button type="button" className="btn btn-primary" onClick={onAcceptDraw}>
+										Accept draw
+									</button>
+									<button type="button" className="btn" onClick={onDeclineDraw}>
+										Decline
+									</button>
+								</div>
+							</div>
+						) : (
+							<div className="button-row">
+								<button
+									type="button"
+									className="btn"
+									onClick={onOfferDraw}
+									disabled={gameRow.draw_offered_by === myID}
+								>
+									{gameRow.draw_offered_by === myID ? 'Draw offered…' : '½ Offer draw'}
+								</button>
+								<button type="button" className="btn" onClick={resign}>
+									🏳 Resign
+								</button>
+							</div>
+						)}
+					</>
 				)}
 				{myColor !== null && (
 					<div className="chat-box">

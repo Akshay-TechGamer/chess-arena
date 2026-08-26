@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -33,6 +33,7 @@ export type Database = {
         Row: {
           black_id: string | null
           created_at: string
+          draw_offered_by: string | null
           fen: string
           id: string
           increment_secs: number
@@ -49,6 +50,7 @@ export type Database = {
         Insert: {
           black_id?: string | null
           created_at?: string
+          draw_offered_by?: string | null
           fen?: string
           id?: string
           increment_secs?: number
@@ -65,6 +67,7 @@ export type Database = {
         Update: {
           black_id?: string | null
           created_at?: string
+          draw_offered_by?: string | null
           fen?: string
           id?: string
           increment_secs?: number
@@ -397,6 +400,160 @@ export type Database = {
         }
         Relationships: []
       }
+      tambola_claims: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: string
+          pattern: string
+          status: string
+          ticket_id: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: string
+          pattern: string
+          status: string
+          ticket_id: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: string
+          pattern?: string
+          status?: string
+          ticket_id?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tambola_claims_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "tambola_games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tambola_claims_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tambola_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tambola_games: {
+        Row: {
+          auto_interval_secs: number
+          call_mode: Database["public"]["Enums"]["tambola_call_mode"]
+          called_numbers: number[]
+          created_at: string
+          current_number: number | null
+          enabled_patterns: string[]
+          host_id: string
+          id: string
+          invite_code: string
+          status: Database["public"]["Enums"]["tambola_game_status"]
+          updated_at: string
+        }
+        Insert: {
+          auto_interval_secs?: number
+          call_mode?: Database["public"]["Enums"]["tambola_call_mode"]
+          called_numbers?: number[]
+          created_at?: string
+          current_number?: number | null
+          enabled_patterns?: string[]
+          host_id: string
+          id?: string
+          invite_code: string
+          status?: Database["public"]["Enums"]["tambola_game_status"]
+          updated_at?: string
+        }
+        Update: {
+          auto_interval_secs?: number
+          call_mode?: Database["public"]["Enums"]["tambola_call_mode"]
+          called_numbers?: number[]
+          created_at?: string
+          current_number?: number | null
+          enabled_patterns?: string[]
+          host_id?: string
+          id?: string
+          invite_code?: string
+          status?: Database["public"]["Enums"]["tambola_game_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tambola_players: {
+        Row: {
+          game_id: string
+          joined_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          game_id: string
+          joined_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          game_id?: string
+          joined_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tambola_players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "tambola_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tambola_tickets: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: string
+          numbers: Json
+          ticket_index: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: string
+          numbers: Json
+          ticket_index?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: string
+          numbers?: Json
+          ticket_index?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tambola_tickets_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "tambola_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_statistics: {
         Row: {
           best_win_streak: number | null
@@ -487,8 +644,11 @@ export type Database = {
         Returns: string
       }
       admin_list: { Args: { p_key: string }; Returns: Json }
+      chess_accept_draw: { Args: { p_game_id: string }; Returns: undefined }
       chess_claim_timeout: { Args: { p_game_id: string }; Returns: undefined }
       chess_cleanup_stale_games: { Args: never; Returns: undefined }
+      chess_clear_draw: { Args: { p_game_id: string }; Returns: undefined }
+      chess_offer_draw: { Args: { p_game_id: string }; Returns: undefined }
       chess_quick_match: { Args: never; Returns: string }
       chess_quick_match_cancel: { Args: never; Returns: undefined }
       chess_resign: { Args: { p_game_id: string }; Returns: undefined }
@@ -503,11 +663,14 @@ export type Database = {
         Returns: number
       }
       get_wish: { Args: { p_id: string }; Returns: Json }
+      tambola_draw_number: { Args: { p_game_id: string }; Returns: number }
     }
     Enums: {
       chess_game_mode: "online" | "computer"
       chess_game_result: "white_win" | "black_win" | "draw"
       chess_game_status: "waiting" | "active" | "finished" | "aborted"
+      tambola_call_mode: "auto" | "manual"
+      tambola_game_status: "waiting" | "active" | "finished"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -638,6 +801,8 @@ export const Constants = {
       chess_game_mode: ["online", "computer"],
       chess_game_result: ["white_win", "black_win", "draw"],
       chess_game_status: ["waiting", "active", "finished", "aborted"],
+      tambola_call_mode: ["auto", "manual"],
+      tambola_game_status: ["waiting", "active", "finished"],
     },
   },
 } as const

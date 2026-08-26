@@ -123,7 +123,12 @@ Deno.serve(async (req) => {
 			return json({ error: 'move already recorded' }, 409);
 		}
 
-		const update: Record<string, unknown> = { fen: chess.fen(), pgn: chess.pgn() };
+		// A move clears any pending draw offer.
+		const update: Record<string, unknown> = {
+			fen: chess.fen(),
+			pgn: chess.pgn(),
+			draw_offered_by: null,
+		};
 		if (chess.isCheckmate()) {
 			update.status = 'finished';
 			update.result = whiteToMove ? 'white_win' : 'black_win';

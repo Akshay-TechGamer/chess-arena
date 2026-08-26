@@ -132,6 +132,33 @@ export async function resignGame(gameID: string): Promise<void> {
 	}
 }
 
+/** Offers a draw to the opponent (tracked server-side). */
+export async function offerDraw(gameID: string): Promise<void> {
+	const supabase = getSupabase();
+	const { error } = await supabase.rpc('chess_offer_draw', { p_game_id: gameID });
+	if (error) {
+		throw new Error(`Could not offer draw: ${error.message}`);
+	}
+}
+
+/** Accepts a standing draw offer from the opponent. */
+export async function acceptDraw(gameID: string): Promise<void> {
+	const supabase = getSupabase();
+	const { error } = await supabase.rpc('chess_accept_draw', { p_game_id: gameID });
+	if (error) {
+		throw new Error(`Could not accept draw: ${error.message}`);
+	}
+}
+
+/** Declines / withdraws a standing draw offer. */
+export async function clearDraw(gameID: string): Promise<void> {
+	const supabase = getSupabase();
+	const { error } = await supabase.rpc('chess_clear_draw', { p_game_id: gameID });
+	if (error) {
+		throw new Error(`Could not clear draw: ${error.message}`);
+	}
+}
+
 /** Asks the server to verify and apply a flag fall. No-op if time remains. */
 export async function claimTimeout(gameID: string): Promise<void> {
 	const supabase = getSupabase();
