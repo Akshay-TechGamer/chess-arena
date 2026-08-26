@@ -1241,12 +1241,23 @@ button {
 }
 
 .status-banner {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
 	padding: 12px 14px;
-	background: var(--card);
-	border: 1px solid var(--border);
+	background: rgba(0, 240, 255, 0.06);
+	border: 1px solid rgba(0, 240, 255, 0.22);
 	border-left: 4px solid var(--accent);
 	border-radius: 8px;
-	font-weight: 600;
+	font-weight: 700;
+	color: var(--accent-strong);
+}
+
+.status-clock {
+	display: inline-flex;
+	flex-shrink: 0;
+	color: var(--accent);
 }
 
 .draw-offer {
@@ -1265,7 +1276,11 @@ button {
 }
 
 .status-over {
+	background: var(--card);
+	border-color: var(--border);
 	border-left-color: #d6a545;
+	color: var(--text);
+	font-weight: 600;
 }
 
 .button-row {
