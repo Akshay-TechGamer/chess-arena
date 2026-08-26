@@ -599,6 +599,13 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 		const turnLabel = ticking
 			? `${cap}${myColor === color ? ' · your turn' : ' to move'}`
 			: undefined;
+		const isOpponent = myColor !== null && color !== myColor;
+		const presence =
+			isOpponent && gameRow.status === 'active'
+				? opponentOnline
+					? 'online'
+					: 'offline'
+				: undefined;
 		return (
 			<PlayerCard
 				name={nameFor(color)}
@@ -608,6 +615,7 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 				you={myColor === color}
 				active={ticking}
 				turnLabel={turnLabel}
+				presence={presence}
 			/>
 		);
 	};
@@ -728,11 +736,6 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 					{whiteName} (white) vs {blackName} (black)
 					{myColor === null && ' — spectating'}
 				</p>
-				{gameRow.status === 'active' && myColor !== null && (
-					<p className={`presence ${opponentOnline ? 'presence-on' : 'presence-off'}`}>
-						● Opponent {opponentOnline ? 'online' : 'offline'}
-					</p>
-				)}
 				{(!isMobile || finished || banner !== null) && (
 					<div className={`status-banner${finished ? ' status-over' : ''}`}>
 					<span className="status-left">

@@ -18,6 +18,8 @@ interface PlayerCardProps {
 	active?: boolean;
 	/** Shown in place of the rating when active, e.g. "White · your turn". */
 	turnLabel?: string;
+	/** Online presence dot next to the name (opponent card). */
+	presence?: 'online' | 'offline';
 }
 
 export function PlayerCard({
@@ -29,6 +31,7 @@ export function PlayerCard({
 	you,
 	active,
 	turnLabel,
+	presence,
 }: PlayerCardProps) {
 	const initial = name.trim().charAt(0).toUpperCase() || '?';
 	const showTurn = active && turnLabel;
@@ -43,6 +46,12 @@ export function PlayerCard({
 				</span>
 				<span className="player-meta">
 					<span className="player-name">
+						{presence && (
+							<span
+								className={`presence-dot presence-dot-${presence}`}
+								aria-label={presence === 'online' ? 'online' : 'offline'}
+							/>
+						)}
 						{name}
 						{you && <span className="you-tag">you</span>}
 					</span>
