@@ -1641,29 +1641,34 @@ button {
 /* ---------- Mobile ---------- */
 
 @media (max-width: 760px) {
-	/* Bottom nav replaces the inline links + hamburger on mobile */
+	/* One slim top bar with a hamburger drawer — no bottom bar, so the board
+	   gets the full height back. */
 	.nav-inline {
 		display: none;
 	}
 
 	.nav-toggle {
+		display: inline-flex;
+	}
+
+	/* Auth lives inside the drawer on mobile — keep the top bar to just the
+	   hamburger + logo so it stays one slim line. */
+	.auth-desktop {
 		display: none;
 	}
 
-	.auth-desktop {
-		display: flex;
-	}
-
 	.bottom-nav {
-		display: flex;
+		display: none;
 	}
 
-	body {
-		padding-bottom: 64px;
+	/* Slimmer header saves space at the top too */
+	.site-header {
+		padding: 8px 14px;
+		gap: 8px;
 	}
 
 	.site-logo {
-		font-size: 1.1rem;
+		font-size: 1.05rem;
 	}
 }
 

@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SideRail } from '@/components/SideRail';
-import { BottomNav } from '@/components/BottomNav';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-body' });
@@ -30,7 +29,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 				<SideRail />
 				<SiteHeader />
 				<main className="container">{children}</main>
-				<BottomNav />
 			</body>
 		</html>
 	);
