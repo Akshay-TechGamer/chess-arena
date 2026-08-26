@@ -869,6 +869,7 @@ button {
 }
 
 .player-avatar {
+	position: relative;
 	flex: 0 0 auto;
 	width: 38px;
 	height: 38px;
@@ -906,6 +907,32 @@ button {
 	color: var(--muted);
 	font-size: 0.78rem;
 	font-variant-numeric: tabular-nums;
+}
+
+/* Active player (whose turn it is) — glow + avatar dot replace the "to move"
+   banner, per the live-game mock. */
+.player-card-active {
+	border-color: rgba(0, 240, 255, 0.5);
+	box-shadow: 0 0 18px rgba(0, 240, 255, 0.16), inset 0 0 0 1px rgba(0, 240, 255, 0.14);
+}
+
+.player-dot {
+	position: absolute;
+	top: -1px;
+	right: -1px;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background: var(--accent);
+	border: 2px solid var(--card);
+	box-shadow: 0 0 8px var(--accent);
+	animation: chat-pulse 1.4s ease-in-out infinite;
+}
+
+.player-sub-turn {
+	color: var(--accent-strong);
+	font-weight: 700;
+	letter-spacing: 0.02em;
 }
 
 .player-clock {
@@ -2256,7 +2283,7 @@ button {
    Chat and move history live in bottom sheets, so they add no height here. */
 @media (max-width: 899px) {
 	.board-column {
-		max-width: min(100%, calc(100vh - 430px));
+		max-width: min(100%, calc(100vh - 380px));
 		margin-left: auto;
 		margin-right: auto;
 	}

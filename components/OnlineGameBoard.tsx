@@ -595,6 +595,10 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 		const ms = clockFor(color);
 		const ticking =
 			gameRow.status === 'active' && game.turn() === (color === 'white' ? 'w' : 'b');
+		const cap = color === 'white' ? 'White' : 'Black';
+		const turnLabel = ticking
+			? `${cap}${myColor === color ? ' · your turn' : ' to move'}`
+			: undefined;
 		return (
 			<PlayerCard
 				name={nameFor(color)}
@@ -602,6 +606,8 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 				clockMs={ms}
 				ticking={ticking}
 				you={myColor === color}
+				active={ticking}
+				turnLabel={turnLabel}
 			/>
 		);
 	};
@@ -727,7 +733,8 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 						● Opponent {opponentOnline ? 'online' : 'offline'}
 					</p>
 				)}
-				<div className={`status-banner${finished ? ' status-over' : ''}`}>
+				{(!isMobile || finished || banner !== null) && (
+					<div className={`status-banner${finished ? ' status-over' : ''}`}>
 					<span className="status-left">
 						{!finished && <span className="turn-live-dot" aria-hidden="true" />}
 						{banner ?? statusText}
@@ -749,7 +756,8 @@ export function OnlineGameBoard({ gameID }: { gameID: string }) {
 							<path d="M12 7v5l3 2" />
 						</svg>
 					)}
-				</div>
+					</div>
+				)}
 				{finished && (
 					<div className="button-row">
 						{myColor !== null &&

@@ -282,11 +282,32 @@ export function GameBoard({ mode, level = 'medium', playerColor = 'white' }: Gam
 		</section>
 	);
 
+	// Which card (top/bottom) is which colour, and whose turn it is — drives the
+	// active card highlight that replaces the "to move" banner on mobile.
+	const bottomSide: 'w' | 'b' = mode === 'computer' ? (playerColor === 'white' ? 'w' : 'b') : 'w';
+	const topSide: 'w' | 'b' = bottomSide === 'w' ? 'b' : 'w';
+	const topActive = !status.isOver && game.turn() === topSide;
+	const bottomActive = !status.isOver && game.turn() === bottomSide;
+	const turnLabelFor = (side: 'w' | 'b') => {
+		if (mode === 'computer') {
+			if (side === bottomSide) {
+				return 'Your turn';
+			}
+			return thinking ? 'Thinking…' : `${side === 'w' ? 'White' : 'Black'} to move`;
+		}
+		return `${side === 'w' ? 'White' : 'Black'} to move`;
+	};
+	const showBanner = !isMobile || status.isOver || thinking || engineError !== null;
+
 	return (
 		<>
 		<div className="game-layout">
 			<div className="board-column">
-				<PlayerCard name={mode === 'computer' ? `${getEngineLevel(level).label} bot` : 'Black'} />
+				<PlayerCard
+					name={mode === 'computer' ? `${getEngineLevel(level).label} bot` : 'Black'}
+					active={topActive}
+					turnLabel={topActive ? turnLabelFor(topSide) : undefined}
+				/>
 				<div className="board-wrap">
 					<Chessboard options={boardOptions} />
 					{pendingPromotion && (
@@ -298,13 +319,20 @@ export function GameBoard({ mode, level = 'medium', playerColor = 'white' }: Gam
 						/>
 					)}
 				</div>
-				<PlayerCard name={mode === 'computer' ? 'You' : 'White'} you={mode === 'computer'} />
+				<PlayerCard
+					name={mode === 'computer' ? 'You' : 'White'}
+					you={mode === 'computer'}
+					active={bottomActive}
+					turnLabel={bottomActive ? turnLabelFor(bottomSide) : undefined}
+				/>
 			</div>
 			<aside className="sidebar">
 				<p className="game-subtitle">{subtitle}</p>
-				<div className={`status-banner${status.isOver ? ' status-over' : ''}`}>
-					{engineError ?? (thinking ? 'Computer is thinking…' : status.text)}
-				</div>
+				{showBanner && (
+					<div className={`status-banner${status.isOver ? ' status-over' : ''}`}>
+						{engineError ?? (thinking ? 'Computer is thinking…' : status.text)}
+					</div>
+				)}
 				{!isMobile && movesPanel}
 				<div className="game-controls">
 					<button
